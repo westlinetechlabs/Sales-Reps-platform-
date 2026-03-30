@@ -248,7 +248,7 @@ export default function AdminPage() {
         {[
           { label: "Total Reps", value: reps.filter((r) => r.role === "rep").length, icon: <Users size={18} />, color: "#3b82f6" },
           { label: "All Bookings", value: bookings.length, icon: <Shield size={18} />, color: "#F5A800" },
-          { label: "Total Revenue", value: `GHS ${totalRevenue.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#22c55e" },
+          { label: "Total Revenue", value: `₵${totalRevenue.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#22c55e" },
           { label: "Pending Payouts", value: pendingWithdrawals, icon: <Wallet size={18} />, color: "#a855f7" },
         ].map((s) => (
           <div key={s.label} className="glass-card p-4">
@@ -412,7 +412,7 @@ export default function AdminPage() {
                             {new Date(b.created_at).toLocaleDateString()}
                           </span>
                           <span className="text-xs font-semibold" style={{ color: "#F5A800" }}>
-                            GHS {b.project_value.toLocaleString()}
+                            ₵{b.project_value.toLocaleString()}
                           </span>
                           <span className={`inline-flex items-center gap-1 text-xs font-medium ${status.color}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
@@ -451,7 +451,7 @@ export default function AdminPage() {
                     <div>
                       <p className="font-semibold text-white">{repName}</p>
                       <p className="text-xs" style={{ color: "rgba(232,228,220,0.3)" }}>
-                        Total: GHS {Object.values(months).reduce((s, m) => s + m.total, 0).toLocaleString()}
+                        Total: ₵{Object.values(months).reduce((s, m) => s + m.total, 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -477,7 +477,7 @@ export default function AdminPage() {
                               </p>
                             </div>
                             <p className="font-bold" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
-                              GHS {data.total.toLocaleString()}
+                              ₵{data.total.toLocaleString()}
                             </p>
                           </div>
                         );
@@ -521,7 +521,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <p className="text-2xl font-bold mt-2" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
-                        GHS {w.amount.toLocaleString()}
+                        ₵{w.amount.toLocaleString()}
                       </p>
                       {w.rep_note && (
                         <p className="text-xs mt-1" style={{ color: "rgba(232,228,220,0.4)" }}>

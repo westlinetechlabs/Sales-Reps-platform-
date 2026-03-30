@@ -137,7 +137,7 @@ export default function DashboardPage() {
           { label: "Total Bookings", value: totalBookings, icon: <FileText size={20} />, color: "#3b82f6" },
           { label: "Active Projects", value: activeProjects, icon: <Clock size={20} />, color: "#F5A800" },
           { label: "Completed", value: completedProjects, icon: <TrendingUp size={20} />, color: "#22c55e" },
-          { label: "Total Commission", value: `GHS ${totalCommission.toLocaleString()}`, icon: <DollarSign size={20} />, color: "#F5A800" },
+          { label: "Total Commission", value: `₵${totalCommission.toLocaleString()}`, icon: <DollarSign size={20} />, color: "#F5A800" },
         ].map((stat) => (
           <div key={stat.label} className="glass-card p-4 lg:p-5">
             <div className="flex items-start justify-between">
@@ -268,10 +268,10 @@ export default function DashboardPage() {
                         {new Date(b.created_at).toLocaleDateString()}
                       </span>
                       <span className="text-xs font-semibold" style={{ color: "#F5A800" }}>
-                        GHS {b.project_value.toLocaleString()}
+                        ₵{b.project_value.toLocaleString()}
                       </span>
                       <span className="text-xs" style={{ color: "rgba(34,197,94,0.7)" }}>
-                        +GHS {b.commission_earned.toLocaleString()}
+                        +₵{b.commission_earned.toLocaleString()}
                       </span>
                     </div>
                   </div>

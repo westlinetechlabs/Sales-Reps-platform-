@@ -385,7 +385,7 @@ export default function ProfilePage() {
           <div className="text-right">
             <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>Total earned</p>
             <p className="text-lg font-bold" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
-              GHS {totalCommission.toLocaleString()}
+              ₵{totalCommission.toLocaleString()}
             </p>
           </div>
         </div>
@@ -414,7 +414,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
                   <p className="font-bold" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
-                    GHS {data.total.toLocaleString()}
+                    ₵{data.total.toLocaleString()}
                   </p>
                 </div>
               );

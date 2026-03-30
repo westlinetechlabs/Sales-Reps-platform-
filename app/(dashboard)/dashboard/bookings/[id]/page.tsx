@@ -53,7 +53,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       ``,
       `SERVICE: ${booking.service_type}`,
       details?.description ? `DETAILS: ${details.description}` : null,
-      `VALUE: GHS ${booking.project_value.toLocaleString()}`,
+      `VALUE: ₵${booking.project_value.toLocaleString()}`,
       ``,
       `STATUS: ${STATUS_CONFIG[booking.status as BookingStatus].label}`,
       booking.notes ? `\nNOTES: ${booking.notes}` : null,
@@ -129,8 +129,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     y += 4;
 
     section("FINANCIALS");
-    row("Value", `GHS ${booking.project_value.toLocaleString()}`);
-    row("Commission", `GHS ${booking.commission_earned}`);
+    row("Value", `₵${booking.project_value.toLocaleString()}`);
+    row("Commission", `₵${booking.commission_earned}`);
     row("Status", STATUS_CONFIG[booking.status as BookingStatus].label);
     y += 4;
 
@@ -329,7 +329,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 className="text-xl font-bold text-white mt-1"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}
               >
-                GHS {booking.project_value.toLocaleString()}
+                ₵{booking.project_value.toLocaleString()}
               </p>
             </div>
             <div>
@@ -338,7 +338,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 className="text-xl font-bold mt-1"
                 style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#F5A800" }}
               >
-                GHS {booking.commission_earned}
+                ₵{booking.commission_earned}
               </p>
             </div>
           </div>

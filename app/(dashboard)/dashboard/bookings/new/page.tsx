@@ -350,7 +350,7 @@ export default function NewBookingPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
-                Estimated Project Value (GHS) *
+                Estimated Project Value (₵) *
               </label>
               <input
                 name="project_value"
@@ -374,7 +374,7 @@ export default function NewBookingPage() {
                 <div>
                   <p className="text-xs" style={{ color: "rgba(245,168,0,0.6)" }}>Your commission</p>
                   <p className="text-lg font-bold" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
-                    GHS {commission}
+                    ₵{commission}
                   </p>
                 </div>
               </div>

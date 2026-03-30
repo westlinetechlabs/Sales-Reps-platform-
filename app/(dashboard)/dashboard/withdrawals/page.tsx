@@ -79,7 +79,7 @@ export default function WithdrawalsPage() {
     const parsedAmount = parseFloat(amount);
 
     if (isNaN(parsedAmount) || parsedAmount < MIN_WITHDRAWAL) {
-      toast.error(`Minimum withdrawal is GHS ${MIN_WITHDRAWAL}`);
+      toast.error(`Minimum withdrawal is ₵${MIN_WITHDRAWAL}`);
       return;
     }
     if (parsedAmount > balance) {
@@ -162,10 +162,10 @@ export default function WithdrawalsPage() {
           className="text-4xl font-bold text-white mb-1"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
-          GHS {balance.toLocaleString()}
+          ₵{balance.toLocaleString()}
         </p>
         <p className="text-xs" style={{ color: "rgba(232,228,220,0.3)" }}>
-          Total earned minus completed withdrawals · Min. GHS {MIN_WITHDRAWAL} to withdraw
+          Total earned minus completed withdrawals · Min. ₵{MIN_WITHDRAWAL} to withdraw
         </p>
 
         <div className="mt-4">
@@ -212,7 +212,7 @@ export default function WithdrawalsPage() {
           <form onSubmit={handleRequest} className="space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
-                Amount (GHS) — max GHS {balance.toLocaleString()}
+                Amount (₵) — max ₵{balance.toLocaleString()}
               </label>
               <input
                 type="number"
@@ -247,11 +247,11 @@ export default function WithdrawalsPage() {
               >
                 <div className="flex justify-between">
                   <span style={{ color: "rgba(232,228,220,0.5)" }}>Requesting</span>
-                  <span className="font-bold" style={{ color: "#F5A800" }}>GHS {parseFloat(amount).toLocaleString()}</span>
+                  <span className="font-bold" style={{ color: "#F5A800" }}>₵{parseFloat(amount).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between mt-1">
                   <span style={{ color: "rgba(232,228,220,0.5)" }}>Balance after (once completed)</span>
-                  <span className="font-semibold text-white">GHS {(balance - parseFloat(amount)).toLocaleString()}</span>
+                  <span className="font-semibold text-white">₵{(balance - parseFloat(amount)).toLocaleString()}</span>
                 </div>
               </div>
             )}
@@ -297,7 +297,7 @@ export default function WithdrawalsPage() {
                           className="text-lg font-bold"
                           style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}
                         >
-                          GHS {w.amount.toLocaleString()}
+                          ₵{w.amount.toLocaleString()}
                         </p>
                         <span
                           className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
