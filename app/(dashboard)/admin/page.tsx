@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase";
 import {
   Shield, Search, Loader2, Users, DollarSign,
@@ -273,10 +274,12 @@ export default function AdminPage() {
       {/* Tab toggle */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {(["bookings", "commissions", "withdrawals", "team"] as const).map((t) => (
-          <button
+          <motion.button
             key={t}
             onClick={() => handleTabChange(t)}
-            className="px-4 py-2 rounded-full text-sm font-medium transition-all capitalize"
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 500, damping: 22 }}
+            className="px-4 py-2 rounded-full text-sm font-medium capitalize relative overflow-hidden"
             style={{
               background: tab === t ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
               color: tab === t ? "#000" : "rgba(232,228,220,0.5)",
@@ -284,13 +287,22 @@ export default function AdminPage() {
             }}
           >
             {t === "team" ? `Team (${reps.length})` : t === "withdrawals" && pendingWithdrawals > 0 ? `Withdrawals (${pendingWithdrawals})` : t}
-          </button>
+          </motion.button>
         ))}
       </div>
 
+      <AnimatePresence mode="wait">
+
       {/* ── TAB LOADING SKELETON ── */}
       {tabLoading && (
-        <div className="space-y-3 animate-fade-in">
+        <motion.div
+          key="tab-skeleton"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="space-y-3"
+        >
           {[1,2,3].map((i) => (
             <div key={i} className="glass-card p-4">
               <div className="flex items-start gap-4">
@@ -302,11 +314,18 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
-        </div>
+        </motion.div>
       )}
 
       {/* ── BOOKINGS TAB ── */}
       {!tabLoading && tab === "bookings" && (
+        <motion.div
+          key="tab-bookings"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
@@ -427,10 +446,18 @@ export default function AdminPage() {
             </div>
           )}
         </>
+        </motion.div>
       )}
 
       {/* ── COMMISSIONS TAB ── */}
       {!tabLoading && tab === "commissions" && (
+        <motion.div
+          key="tab-commissions"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
         <div className="space-y-4">
           {Object.keys(commissionSummary).length === 0 ? (
             <div className="glass-card py-16 text-center">
@@ -487,10 +514,18 @@ export default function AdminPage() {
               ))
           )}
         </div>
+        </motion.div>
       )}
 
       {/* ── WITHDRAWALS TAB ── */}
       {!tabLoading && tab === "withdrawals" && (
+        <motion.div
+          key="tab-withdrawals"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
         <div className="space-y-4">
           {withdrawals.length === 0 ? (
             <div className="glass-card py-16 text-center">
@@ -602,10 +637,18 @@ export default function AdminPage() {
             })
           )}
         </div>
+        </motion.div>
       )}
 
       {/* ── TEAM TAB ── */}
       {!tabLoading && tab === "team" && (
+        <motion.div
+          key="tab-team"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
         <div className="space-y-4">
           {/* Invite banner */}
           <div
@@ -785,7 +828,10 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        </motion.div>
       )}
+
+      </AnimatePresence>
     </div>
   );
 }

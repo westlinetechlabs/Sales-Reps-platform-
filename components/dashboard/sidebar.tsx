@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { SalesRep } from "@/types";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 interface SidebarProps {
   rep: SalesRep;
@@ -80,21 +81,39 @@ export function Sidebar({ rep }: SidebarProps) {
           const Icon = link.icon;
           const isActive = pathname === link.href;
           return (
-            <Link
+            <motion.div
               key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group"
-              style={{
-                background: isActive ? "rgba(245,168,0,0.1)" : "transparent",
-                color: isActive ? "#F5A800" : "rgba(232,228,220,0.5)",
-                border: isActive ? "1px solid rgba(245,168,0,0.15)" : "1px solid transparent",
-              }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ type: "spring", stiffness: 500, damping: 22 }}
             >
-              <Icon size={17} style={{ color: isActive ? "#F5A800" : "rgba(232,228,220,0.3)" }} />
-              <span className="flex-1">{link.label}</span>
-              {isActive && <ChevronRight size={14} style={{ color: "#F5A800" }} />}
-            </Link>
+              <Link
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group"
+                style={{
+                  background: isActive ? "rgba(245,168,0,0.1)" : "transparent",
+                  color: isActive ? "#F5A800" : "rgba(232,228,220,0.5)",
+                  border: isActive ? "1px solid rgba(245,168,0,0.15)" : "1px solid transparent",
+                }}
+              >
+                <motion.div
+                  animate={isActive ? { scale: 1.15 } : { scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                >
+                  <Icon size={17} style={{ color: isActive ? "#F5A800" : "rgba(232,228,220,0.3)" }} />
+                </motion.div>
+                <span className="flex-1">{link.label}</span>
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  >
+                    <ChevronRight size={14} style={{ color: "#F5A800" }} />
+                  </motion.div>
+                )}
+              </Link>
+            </motion.div>
           );
         })}
       </nav>

@@ -10,6 +10,7 @@ import {
 import type { Booking, BookingStatus, SalesRep } from "@/types";
 import { STATUS_CONFIG } from "@/types";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 const FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "All" },
@@ -177,29 +178,53 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {FILTERS.map((f) => (
-            <button
+            <motion.button
               key={f.value}
               onClick={() => handleFilterChange(f.value)}
-              className="px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 500, damping: 20 }}
+              className="px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap relative overflow-hidden"
               style={{
                 background: filter === f.value ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
                 color: filter === f.value ? "#000" : "rgba(232,228,220,0.5)",
                 border: `1px solid ${filter === f.value ? "transparent" : "rgba(255,255,255,0.08)"}`,
               }}
             >
+              {filter === f.value && (
+                <motion.span
+                  layoutId="filter-pill"
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: "linear-gradient(135deg, #F5A800, #D4920A)", zIndex: -1 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                />
+              )}
               {f.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
       {/* Bookings list */}
+      <AnimatePresence mode="wait">
       {tabLoading ? (
-        <div className="space-y-3">
+        <motion.div
+          key="skeleton"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="space-y-3"
+        >
           {[1, 2, 3].map((i) => <BookingSkeleton key={i} />)}
-        </div>
+        </motion.div>
       ) : filtered.length === 0 ? (
-        <div className="glass-card py-16 text-center animate-fade-in">
+        <motion.div
+          key={`empty-${filter}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="glass-card py-16 text-center"
+        >
           <Inbox size={40} className="mx-auto mb-3" style={{ color: "rgba(232,228,220,0.15)" }} />
           <p className="font-medium text-white">
             {bookings.length === 0 ? "No bookings yet" : "No matching bookings"}
@@ -214,9 +239,16 @@ export default function DashboardPage() {
               <Plus size={14} /> Create First Booking
             </Link>
           )}
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-3 animate-fade-in">
+        <motion.div
+          key={`list-${filter}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="space-y-3"
+        >
           {filtered.map((b) => {
             const status = STATUS_CONFIG[b.status as BookingStatus];
             return (
@@ -279,8 +311,9 @@ export default function DashboardPage() {
               </Link>
             );
           })}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
