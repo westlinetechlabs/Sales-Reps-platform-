@@ -53,10 +53,14 @@ export function Sidebar({ rep }: SidebarProps) {
       <div className="mx-3 mt-4 p-3 rounded-xl" style={{ background: "rgba(245,168,0,0.06)", border: "1px solid rgba(245,168,0,0.1)" }}>
         <div className="flex items-center gap-3">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
             style={{ background: "linear-gradient(135deg, #F5A800, #D4920A)", color: "#000" }}
           >
-            {rep.full_name[0]?.toUpperCase()}
+            {rep.avatar_url ? (
+              <img src={rep.avatar_url} alt={rep.full_name} className="w-full h-full object-cover" />
+            ) : (
+              rep.full_name[0]?.toUpperCase()
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-white truncate">{rep.full_name}</p>

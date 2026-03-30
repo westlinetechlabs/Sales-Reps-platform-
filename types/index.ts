@@ -7,6 +7,7 @@ export interface SalesRep {
   region?: string | null;
   role: "rep" | "admin";
   status: "active" | "inactive";
+  avatar_url?: string | null;
   created_at: string;
 }
 
