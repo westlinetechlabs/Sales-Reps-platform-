@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 import {
   Shield, Search, Loader2, Users, DollarSign,
-  ChevronDown, Phone, ChevronRight,
+  ChevronDown, Phone, ChevronRight, UserCheck, UserX,
+  Trash2, Copy, CheckCheck,
 } from "lucide-react";
 import Link from "next/link";
 import type { Booking, BookingStatus, SalesRep } from "@/types";
@@ -21,7 +22,8 @@ export default function AdminPage() {
   const [filter, setFilter] = useState("all");
   const [repFilter, setRepFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"bookings" | "commissions">("bookings");
+  const [tab, setTab] = useState<"bookings" | "commissions" | "team">("bookings");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -32,7 +34,7 @@ export default function AdminPage() {
       .from("sales_reps")
       .select("*")
       .eq("user_id", session.user.id)
-      .single();
+      .maybeSingle();
 
     if (!profile || profile.role !== "admin") {
       toast.error("Unauthorized");
@@ -77,6 +79,62 @@ export default function AdminPage() {
     }
   }
 
+  async function toggleRepStatus(repId: string, currentStatus: string) {
+    const supabase = createClient();
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    const { error } = await supabase
+      .from("sales_reps")
+      .update({ status: newStatus })
+      .eq("id", repId);
+
+    if (error) {
+      toast.error("Failed to update rep status");
+    } else {
+      toast.success(`Rep ${newStatus === "active" ? "activated" : "deactivated"}`);
+      setReps((prev) =>
+        prev.map((r) => (r.id === repId ? { ...r, status: newStatus as "active" | "inactive" } : r))
+      );
+    }
+  }
+
+  async function changeRepRole(repId: string, newRole: "rep" | "admin") {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("sales_reps")
+      .update({ role: newRole })
+      .eq("id", repId);
+
+    if (error) {
+      toast.error("Failed to update role");
+    } else {
+      toast.success(`Role updated to ${newRole}`);
+      setReps((prev) =>
+        prev.map((r) => (r.id === repId ? { ...r, role: newRole } : r))
+      );
+    }
+  }
+
+  async function removeRep(repId: string, repName: string) {
+    if (!confirm(`Remove ${repName}? This will delete all their bookings too.`)) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("sales_reps").delete().eq("id", repId);
+    if (error) {
+      toast.error("Failed to remove rep");
+    } else {
+      toast.success(`${repName} removed`);
+      setReps((prev) => prev.filter((r) => r.id !== repId));
+    }
+  }
+
+  function copyInviteLink() {
+    const url = `${window.location.origin}/register`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      toast.success("Invite link copied!");
+      setTimeout(() => setLinkCopied(false), 3000);
+    });
+  }
+
   const filtered = bookings.filter((b) => {
     const matchFilter = filter === "all" || b.status === filter;
     const matchRep = repFilter === "all" || b.rep_id === repFilter;
@@ -86,7 +144,6 @@ export default function AdminPage() {
     return matchFilter && matchRep && matchSearch;
   });
 
-  // Commission summary per rep per month
   const commissionSummary = bookings.reduce(
     (acc: Record<string, Record<string, { total: number; count: number }>>, b) => {
       const repName = (b.sales_reps as unknown as SalesRep)?.full_name || "Unknown";
@@ -133,7 +190,7 @@ export default function AdminPage() {
             Admin Panel
           </h1>
           <p className="text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>
-            Manage all bookings and view commission summaries
+            Manage your team, bookings, and commissions
           </p>
         </div>
       </div>
@@ -144,7 +201,7 @@ export default function AdminPage() {
           { label: "Total Reps", value: reps.filter((r) => r.role === "rep").length, icon: <Users size={18} />, color: "#3b82f6" },
           { label: "All Bookings", value: bookings.length, icon: <Shield size={18} />, color: "#F5A800" },
           { label: "Total Revenue", value: `GHS ${totalRevenue.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#22c55e" },
-          { label: "Total Commissions", value: `GHS ${totalCommissions}`, icon: <DollarSign size={18} />, color: "#a855f7" },
+          { label: "Total Commissions", value: `GHS ${totalCommissions.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#a855f7" },
         ].map((s) => (
           <div key={s.label} className="glass-card p-4">
             <div className="flex items-start justify-between">
@@ -166,8 +223,8 @@ export default function AdminPage() {
       </div>
 
       {/* Tab toggle */}
-      <div className="flex gap-2 mb-4">
-        {(["bookings", "commissions"] as const).map((t) => (
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(["bookings", "commissions", "team"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -178,14 +235,14 @@ export default function AdminPage() {
               border: `1px solid ${tab === t ? "transparent" : "rgba(255,255,255,0.08)"}`,
             }}
           >
-            {t}
+            {t === "team" ? `Team (${reps.length})` : t}
           </button>
         ))}
       </div>
 
+      {/* ── BOOKINGS TAB ── */}
       {tab === "bookings" && (
         <>
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: "rgba(232,228,220,0.3)" }} />
@@ -220,7 +277,6 @@ export default function AdminPage() {
             </select>
           </div>
 
-          {/* Bookings list */}
           {filtered.length === 0 ? (
             <div className="glass-card py-16 text-center">
               <p className="text-sm" style={{ color: "rgba(232,228,220,0.3)" }}>No bookings found</p>
@@ -256,33 +312,28 @@ export default function AdminPage() {
                               {b.service_type} · by <span style={{ color: "rgba(245,168,0,0.6)" }}>{repName}</span>
                             </p>
                           </div>
-
-                          {/* Status changer */}
                           <div className="relative shrink-0">
-                            <div className="relative">
-                              <select
-                                value={b.status}
-                                onChange={(e) => updateStatus(b.id, e.target.value as BookingStatus)}
-                                className="appearance-none text-xs font-medium px-3 py-1.5 pr-7 rounded-full border cursor-pointer"
-                                style={{
-                                  background: "rgba(255,255,255,0.04)",
-                                  borderColor: "rgba(255,255,255,0.1)",
-                                  color: "#e8e4dc",
-                                }}
-                              >
-                                {STATUSES.map((s) => (
-                                  <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                                ))}
-                              </select>
-                              <ChevronDown
-                                size={12}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                                style={{ color: "rgba(232,228,220,0.3)" }}
-                              />
-                            </div>
+                            <select
+                              value={b.status}
+                              onChange={(e) => updateStatus(b.id, e.target.value as BookingStatus)}
+                              className="appearance-none text-xs font-medium px-3 py-1.5 pr-7 rounded-full border cursor-pointer"
+                              style={{
+                                background: "rgba(255,255,255,0.04)",
+                                borderColor: "rgba(255,255,255,0.1)",
+                                color: "#e8e4dc",
+                              }}
+                            >
+                              {STATUSES.map((s) => (
+                                <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                              ))}
+                            </select>
+                            <ChevronDown
+                              size={12}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                              style={{ color: "rgba(232,228,220,0.3)" }}
+                            />
                           </div>
                         </div>
-
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                           <a
                             href={`tel:${b.client_phone}`}
@@ -297,9 +348,7 @@ export default function AdminPage() {
                           <span className="text-xs font-semibold" style={{ color: "#F5A800" }}>
                             GHS {b.project_value.toLocaleString()}
                           </span>
-                          <span
-                            className={`inline-flex items-center gap-1 text-xs font-medium ${status.color}`}
-                          >
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${status.color}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                             {status.label}
                           </span>
@@ -314,6 +363,7 @@ export default function AdminPage() {
         </>
       )}
 
+      {/* ── COMMISSIONS TAB ── */}
       {tab === "commissions" && (
         <div className="space-y-4">
           {Object.keys(commissionSummary).length === 0 ? (
@@ -335,8 +385,7 @@ export default function AdminPage() {
                     <div>
                       <p className="font-semibold text-white">{repName}</p>
                       <p className="text-xs" style={{ color: "rgba(232,228,220,0.3)" }}>
-                        Total: GHS{" "}
-                        {Object.values(months).reduce((s, m) => s + m.total, 0)}
+                        Total: GHS {Object.values(months).reduce((s, m) => s + m.total, 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -361,11 +410,8 @@ export default function AdminPage() {
                                 {data.count} booking{data.count !== 1 ? "s" : ""}
                               </p>
                             </div>
-                            <p
-                              className="font-bold"
-                              style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}
-                            >
-                              GHS {data.total}
+                            <p className="font-bold" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
+                              GHS {data.total.toLocaleString()}
                             </p>
                           </div>
                         );
@@ -373,6 +419,138 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))
+          )}
+        </div>
+      )}
+
+      {/* ── TEAM TAB ── */}
+      {tab === "team" && (
+        <div className="space-y-4">
+          {/* Invite banner */}
+          <div
+            className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-3"
+            style={{ borderColor: "rgba(245,168,0,0.2)" }}
+          >
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Add a new team member</p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(232,228,220,0.4)" }}>
+                Share the sign-up link with your employee. Once they register, they appear here automatically.
+              </p>
+            </div>
+            <button
+              onClick={copyInviteLink}
+              className="btn-gold flex items-center gap-2 shrink-0 text-sm"
+            >
+              {linkCopied ? <CheckCheck size={15} /> : <Copy size={15} />}
+              {linkCopied ? "Copied!" : "Copy Invite Link"}
+            </button>
+          </div>
+
+          {/* Reps list */}
+          {reps.length === 0 ? (
+            <div className="glass-card py-16 text-center">
+              <p className="text-sm" style={{ color: "rgba(232,228,220,0.3)" }}>No team members yet</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reps.map((r) => {
+                const isMe = r.id === rep.id;
+                const repBookings = bookings.filter((b) => b.rep_id === r.id);
+                return (
+                  <div key={r.id} className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Avatar + info */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                        style={{ background: "linear-gradient(135deg, #F5A800, #D4920A)", color: "#000" }}
+                      >
+                        {r.full_name[0]?.toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-white truncate">{r.full_name}</p>
+                          {isMe && (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full shrink-0"
+                              style={{ background: "rgba(245,168,0,0.15)", color: "#F5A800" }}
+                            >
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs truncate" style={{ color: "rgba(232,228,220,0.35)" }}>
+                          {r.email}
+                          {r.phone && ` · ${r.phone}`}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: "rgba(232,228,220,0.25)" }}>
+                          {repBookings.length} booking{repBookings.length !== 1 ? "s" : ""}
+                          {r.region && ` · ${r.region}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Status badge */}
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{
+                          background: r.status === "active" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                          color: r.status === "active" ? "#22c55e" : "#ef4444",
+                        }}
+                      >
+                        {r.status}
+                      </span>
+
+                      {/* Role badge */}
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{
+                          background: r.role === "admin" ? "rgba(168,85,247,0.1)" : "rgba(59,130,246,0.1)",
+                          color: r.role === "admin" ? "#a855f7" : "#3b82f6",
+                        }}
+                      >
+                        {r.role}
+                      </span>
+
+                      {!isMe && (
+                        <>
+                          {/* Toggle active */}
+                          <button
+                            onClick={() => toggleRepStatus(r.id, r.status)}
+                            title={r.status === "active" ? "Deactivate" : "Activate"}
+                            className="p-2 rounded-xl transition-colors"
+                            style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,228,220,0.5)" }}
+                          >
+                            {r.status === "active" ? <UserX size={15} /> : <UserCheck size={15} />}
+                          </button>
+
+                          {/* Toggle role */}
+                          <button
+                            onClick={() => changeRepRole(r.id, r.role === "rep" ? "admin" : "rep")}
+                            title={r.role === "rep" ? "Promote to admin" : "Demote to rep"}
+                            className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                            style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,228,220,0.5)" }}
+                          >
+                            {r.role === "rep" ? "Make Admin" : "Make Rep"}
+                          </button>
+
+                          {/* Remove */}
+                          <button
+                            onClick={() => removeRep(r.id, r.full_name)}
+                            title="Remove rep"
+                            className="p-2 rounded-xl transition-colors"
+                            style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444" }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
