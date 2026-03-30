@@ -5,11 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import {
   LayoutDashboard, Plus, UserCircle, LogOut,
-  ChevronRight, Shield, Menu, X,
+  ChevronRight, Shield, Menu, X, Wallet,
 } from "lucide-react";
 import type { SalesRep } from "@/types";
 import { useState } from "react";
-import toast from "react-hot-toast";
 
 interface SidebarProps {
   rep: SalesRep;
@@ -20,18 +19,19 @@ export function Sidebar({ rep }: SidebarProps) {
   const router = useRouter();
   const isAdmin = rep.role === "admin";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/bookings/new", label: "New Booking", icon: Plus },
+    { href: "/dashboard/withdrawals", label: "Withdrawals", icon: Wallet },
     { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
     ...(isAdmin ? [{ href: "/admin", label: "Admin Panel", icon: Shield }] : []),
   ];
 
-  async function handleSignOut() {
+  async function doSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    toast.success("Signed out");
     router.push("/login");
   }
 
@@ -96,15 +96,46 @@ export function Sidebar({ rep }: SidebarProps) {
       </nav>
 
       {/* Sign out */}
-      <div className="px-3 pb-4">
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-          style={{ color: "rgba(232,228,220,0.4)" }}
-        >
-          <LogOut size={17} />
-          Sign out
-        </button>
+      <div className="px-3 pb-5">
+        {confirmSignOut ? (
+          <div
+            className="p-3 rounded-xl space-y-2"
+            style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}
+          >
+            <p className="text-xs text-center font-medium" style={{ color: "rgba(239,68,68,0.8)" }}>
+              Sign out of your account?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmSignOut(false)}
+                className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(232,228,220,0.5)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doSignOut}
+                className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
+                style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmSignOut(true)}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-full text-sm font-medium transition-all"
+            style={{
+              color: "#f87171",
+              border: "1px solid rgba(239,68,68,0.2)",
+              background: "rgba(239,68,68,0.04)",
+            }}
+          >
+            <LogOut size={15} />
+            Sign out
+          </button>
+        )}
       </div>
     </>
   );

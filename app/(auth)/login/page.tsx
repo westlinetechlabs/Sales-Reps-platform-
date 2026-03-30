@@ -138,6 +138,16 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs hover:underline"
+                style={{ color: "rgba(245,168,0,0.6)" }}
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             <button type="submit" disabled={loading} className="btn-gold w-full">
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
               Sign in
@@ -147,7 +157,7 @@ export default function LoginPage() {
           <p className="text-center text-sm mt-6" style={{ color: "rgba(232,228,220,0.4)" }}>
             Don&apos;t have an account?{" "}
             <Link href="/register" className="font-medium hover:underline" style={{ color: "#F5A800" }}>
-              Create one
+              Request access
             </Link>
           </p>
         </div>

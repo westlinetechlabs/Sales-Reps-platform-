@@ -5,25 +5,36 @@ import { createClient } from "@/lib/supabase";
 import {
   Shield, Search, Loader2, Users, DollarSign,
   ChevronDown, Phone, ChevronRight, UserCheck, UserX,
-  Trash2, Copy, CheckCheck,
+  Trash2, Copy, CheckCheck, Wallet, Clock, CheckCircle,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import type { Booking, BookingStatus, SalesRep } from "@/types";
+import type { Booking, BookingStatus, SalesRep, WithdrawalRequest, WithdrawalStatus } from "@/types";
 import { STATUS_CONFIG } from "@/types";
 import toast from "react-hot-toast";
 
 const STATUSES: BookingStatus[] = ["new", "in_progress", "completed", "cancelled"];
 
+const WD_STATUS_CONFIG: Record<WithdrawalStatus, { label: string; color: string }> = {
+  pending:   { label: "Pending",   color: "#F5A800" },
+  approved:  { label: "Approved",  color: "#3b82f6" },
+  rejected:  { label: "Rejected",  color: "#ef4444" },
+  completed: { label: "Completed", color: "#22c55e" },
+};
+
 export default function AdminPage() {
   const [rep, setRep] = useState<SalesRep | null>(null);
   const [reps, setReps] = useState<SalesRep[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [withdrawals, setWithdrawals] = useState<(WithdrawalRequest & { sales_reps?: SalesRep })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [repFilter, setRepFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"bookings" | "commissions" | "team">("bookings");
+  const [tab, setTab] = useState<"bookings" | "commissions" | "team" | "withdrawals">("bookings");
+  const [tabLoading, setTabLoading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -43,18 +54,54 @@ export default function AdminPage() {
 
     setRep(profile);
 
-    const [{ data: allReps }, { data: allBookings }] = await Promise.all([
+    const [{ data: allReps }, { data: allBookings }, { data: allWithdrawals }] = await Promise.all([
       supabase.from("sales_reps").select("*").order("full_name"),
       supabase
         .from("sales_bookings")
         .select("*, sales_reps(id, full_name, email)")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("withdrawal_requests")
+        .select("*, sales_reps(id, full_name, email)")
+        .order("requested_at", { ascending: false }),
     ]);
 
     setReps(allReps || []);
     setBookings(allBookings || []);
+    setWithdrawals(allWithdrawals || []);
     setLoading(false);
   }, []);
+
+  function handleTabChange(t: typeof tab) {
+    setTabLoading(true);
+    setTab(t);
+    setTimeout(() => setTabLoading(false), 300);
+  }
+
+  async function updateWithdrawal(id: string, status: WithdrawalStatus, adminNote?: string) {
+    const supabase = createClient();
+    const updates: Record<string, unknown> = { status };
+    if (adminNote) updates.admin_note = adminNote;
+    if (status === "completed") updates.completed_at = new Date().toISOString();
+
+    const { error } = await supabase
+      .from("withdrawal_requests")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to update withdrawal");
+    } else {
+      toast.success(`Withdrawal ${status}`);
+      setWithdrawals((prev) =>
+        prev.map((w) =>
+          w.id === id
+            ? { ...w, status, admin_note: adminNote || w.admin_note, completed_at: status === "completed" ? new Date().toISOString() : w.completed_at }
+            : w
+        )
+      );
+    }
+  }
 
   useEffect(() => {
     fetchData();
@@ -176,6 +223,7 @@ export default function AdminPage() {
 
   const totalRevenue = bookings.reduce((s, b) => s + b.project_value, 0);
   const totalCommissions = bookings.reduce((s, b) => s + b.commission_earned, 0);
+  const pendingWithdrawals = withdrawals.filter((w) => w.status === "pending").length;
 
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto animate-fade-in">
@@ -201,7 +249,7 @@ export default function AdminPage() {
           { label: "Total Reps", value: reps.filter((r) => r.role === "rep").length, icon: <Users size={18} />, color: "#3b82f6" },
           { label: "All Bookings", value: bookings.length, icon: <Shield size={18} />, color: "#F5A800" },
           { label: "Total Revenue", value: `GHS ${totalRevenue.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#22c55e" },
-          { label: "Total Commissions", value: `GHS ${totalCommissions.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#a855f7" },
+          { label: "Pending Payouts", value: pendingWithdrawals, icon: <Wallet size={18} />, color: "#a855f7" },
         ].map((s) => (
           <div key={s.label} className="glass-card p-4">
             <div className="flex items-start justify-between">
@@ -224,10 +272,10 @@ export default function AdminPage() {
 
       {/* Tab toggle */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {(["bookings", "commissions", "team"] as const).map((t) => (
+        {(["bookings", "commissions", "withdrawals", "team"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => handleTabChange(t)}
             className="px-4 py-2 rounded-full text-sm font-medium transition-all capitalize"
             style={{
               background: tab === t ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
@@ -235,13 +283,30 @@ export default function AdminPage() {
               border: `1px solid ${tab === t ? "transparent" : "rgba(255,255,255,0.08)"}`,
             }}
           >
-            {t === "team" ? `Team (${reps.length})` : t}
+            {t === "team" ? `Team (${reps.length})` : t === "withdrawals" && pendingWithdrawals > 0 ? `Withdrawals (${pendingWithdrawals})` : t}
           </button>
         ))}
       </div>
 
+      {/* ── TAB LOADING SKELETON ── */}
+      {tabLoading && (
+        <div className="space-y-3 animate-fade-in">
+          {[1,2,3].map((i) => (
+            <div key={i} className="glass-card p-4">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl skeleton shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-4 w-40 rounded" />
+                  <div className="skeleton h-3 w-24 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── BOOKINGS TAB ── */}
-      {tab === "bookings" && (
+      {!tabLoading && tab === "bookings" && (
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
@@ -364,7 +429,7 @@ export default function AdminPage() {
       )}
 
       {/* ── COMMISSIONS TAB ── */}
-      {tab === "commissions" && (
+      {!tabLoading && tab === "commissions" && (
         <div className="space-y-4">
           {Object.keys(commissionSummary).length === 0 ? (
             <div className="glass-card py-16 text-center">
@@ -423,8 +488,123 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* ── WITHDRAWALS TAB ── */}
+      {!tabLoading && tab === "withdrawals" && (
+        <div className="space-y-4">
+          {withdrawals.length === 0 ? (
+            <div className="glass-card py-16 text-center">
+              <Wallet size={36} className="mx-auto mb-3" style={{ color: "rgba(232,228,220,0.1)" }} />
+              <p className="text-sm" style={{ color: "rgba(232,228,220,0.3)" }}>No withdrawal requests yet</p>
+            </div>
+          ) : (
+            withdrawals.map((w) => {
+              const repName = (w.sales_reps as unknown as SalesRep)?.full_name || "Unknown";
+              const cfg = WD_STATUS_CONFIG[w.status as WithdrawalStatus];
+              return (
+                <div key={w.id} className="glass-card p-4 lg:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    {/* Rep + amount info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                          style={{ background: "linear-gradient(135deg, #F5A800, #D4920A)", color: "#000" }}
+                        >
+                          {repName[0]?.toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">{repName}</p>
+                          <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>
+                            {new Date(w.requested_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold mt-2" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
+                        GHS {w.amount.toLocaleString()}
+                      </p>
+                      {w.rep_note && (
+                        <p className="text-xs mt-1" style={{ color: "rgba(232,228,220,0.4)" }}>
+                          Rep note: {w.rep_note}
+                        </p>
+                      )}
+                      {w.admin_note && (
+                        <p className="text-xs mt-1 italic" style={{ color: "rgba(232,228,220,0.35)" }}>
+                          Your note: {w.admin_note}
+                        </p>
+                      )}
+                      {w.completed_at && (
+                        <p className="text-xs mt-1" style={{ color: "#22c55e" }}>
+                          Completed {new Date(w.completed_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Status + actions */}
+                    <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+                      <span
+                        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full"
+                        style={{ background: `${cfg.color}15`, color: cfg.color }}
+                      >
+                        {w.status === "completed" ? <CheckCircle size={12} /> : w.status === "rejected" ? <XCircle size={12} /> : <Clock size={12} />}
+                        {cfg.label}
+                      </span>
+
+                      {/* Pending actions */}
+                      {w.status === "pending" && (
+                        <div className="space-y-2 w-full sm:w-auto">
+                          <textarea
+                            placeholder="Admin note (optional)"
+                            rows={1}
+                            value={adminNotes[w.id] || ""}
+                            onChange={(e) => setAdminNotes((prev) => ({ ...prev, [w.id]: e.target.value }))}
+                            className="input-dark resize-none text-xs w-full sm:w-48"
+                            style={{ padding: "6px 10px" }}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => updateWithdrawal(w.id, "approved", adminNotes[w.id])}
+                              className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 px-3 rounded-full font-medium"
+                              style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.2)" }}
+                            >
+                              <CheckCircle size={12} /> Approve
+                            </button>
+                            <button
+                              onClick={() => updateWithdrawal(w.id, "rejected", adminNotes[w.id])}
+                              className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 px-3 rounded-full font-medium"
+                              style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}
+                            >
+                              <XCircle size={12} /> Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Approved — admin has sent money, mark complete */}
+                      {w.status === "approved" && (
+                        <div className="space-y-2 w-full sm:w-auto">
+                          <p className="text-xs" style={{ color: "rgba(59,130,246,0.7)" }}>
+                            Send the money, then mark as completed.
+                          </p>
+                          <button
+                            onClick={() => updateWithdrawal(w.id, "completed", adminNotes[w.id])}
+                            className="w-full flex items-center justify-center gap-1 text-xs py-1.5 px-3 rounded-full font-medium"
+                            style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}
+                          >
+                            <CheckCircle size={12} /> Mark as Completed
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
       {/* ── TEAM TAB ── */}
-      {tab === "team" && (
+      {!tabLoading && tab === "team" && (
         <div className="space-y-4">
           {/* Invite banner */}
           <div

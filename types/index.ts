@@ -59,6 +59,21 @@ export const SERVICE_TYPES: ServiceType[] = [
   "Other",
 ];
 
+export interface WithdrawalRequest {
+  id: string;
+  rep_id: string;
+  amount: number;
+  status: "pending" | "approved" | "rejected" | "completed";
+  rep_note?: string | null;
+  admin_note?: string | null;
+  requested_at: string;
+  completed_at?: string | null;
+  // joined
+  sales_reps?: SalesRep;
+}
+
+export type WithdrawalStatus = WithdrawalRequest["status"];
+
 export const STATUS_CONFIG: Record<
   BookingStatus,
   { label: string; color: string; bg: string; dot: string }

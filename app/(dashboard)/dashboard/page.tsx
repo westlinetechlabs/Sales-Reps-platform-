@@ -19,11 +19,30 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
+function BookingSkeleton() {
+  return (
+    <div className="glass-card p-4 lg:p-5">
+      <div className="flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl skeleton shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="skeleton h-4 w-36 rounded" />
+          <div className="skeleton h-3 w-24 rounded" />
+          <div className="flex gap-4 mt-2">
+            <div className="skeleton h-3 w-20 rounded" />
+            <div className="skeleton h-3 w-16 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [rep, setRep] = useState<SalesRep | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [tabLoading, setTabLoading] = useState(false);
   const [search, setSearch] = useState("");
 
   const fetchData = useCallback(async () => {
@@ -35,7 +54,7 @@ export default function DashboardPage() {
       .from("sales_reps")
       .select("*")
       .eq("user_id", session.user.id)
-      .single();
+      .maybeSingle();
 
     if (!profile) return;
     setRep(profile);
@@ -48,7 +67,6 @@ export default function DashboardPage() {
 
     if (error) {
       toast.error("Failed to load bookings");
-      console.error(error);
     } else {
       setBookings(bks || []);
     }
@@ -59,6 +77,12 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  function handleFilterChange(value: string) {
+    setTabLoading(true);
+    setFilter(value);
+    setTimeout(() => setTabLoading(false), 300);
+  }
 
   const filtered = bookings.filter((b) => {
     const matchFilter = filter === "all" || b.status === filter;
@@ -72,13 +96,7 @@ export default function DashboardPage() {
   const totalBookings = bookings.length;
   const activeProjects = bookings.filter((b) => b.status === "in_progress").length;
   const completedProjects = bookings.filter((b) => b.status === "completed").length;
-  const monthlyCommission = bookings
-    .filter((b) => {
-      const d = new Date(b.created_at);
-      const now = new Date();
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    })
-    .reduce((sum, b) => sum + b.commission_earned, 0);
+  const totalCommission = bookings.reduce((sum, b) => sum + b.commission_earned, 0);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -119,7 +137,7 @@ export default function DashboardPage() {
           { label: "Total Bookings", value: totalBookings, icon: <FileText size={20} />, color: "#3b82f6" },
           { label: "Active Projects", value: activeProjects, icon: <Clock size={20} />, color: "#F5A800" },
           { label: "Completed", value: completedProjects, icon: <TrendingUp size={20} />, color: "#22c55e" },
-          { label: "This Month's Commission", value: `GHS ${monthlyCommission}`, icon: <DollarSign size={20} />, color: "#F5A800" },
+          { label: "Total Commission", value: `GHS ${totalCommission.toLocaleString()}`, icon: <DollarSign size={20} />, color: "#F5A800" },
         ].map((stat) => (
           <div key={stat.label} className="glass-card p-4 lg:p-5">
             <div className="flex items-start justify-between">
@@ -132,10 +150,7 @@ export default function DashboardPage() {
                   {stat.value}
                 </p>
               </div>
-              <div
-                className="p-2.5 rounded-xl"
-                style={{ background: `${stat.color}15`, color: stat.color }}
-              >
+              <div className="p-2.5 rounded-xl" style={{ background: `${stat.color}15`, color: stat.color }}>
                 {stat.icon}
               </div>
             </div>
@@ -145,20 +160,26 @@ export default function DashboardPage() {
 
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        {/* Search — icon is decorative, padding ensures text never overlaps it */}
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: "rgba(232,228,220,0.3)" }} />
+          <Search
+            size={15}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: "rgba(232,228,220,0.3)" }}
+          />
           <input
             placeholder="Search bookings..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-dark pl-10"
+            className="input-dark"
+            style={{ paddingLeft: "2.5rem" }}
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {FILTERS.map((f) => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => handleFilterChange(f.value)}
               className="px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
               style={{
                 background: filter === f.value ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
@@ -173,8 +194,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Bookings list */}
-      {filtered.length === 0 ? (
-        <div className="glass-card py-16 text-center">
+      {tabLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => <BookingSkeleton key={i} />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="glass-card py-16 text-center animate-fade-in">
           <Inbox size={40} className="mx-auto mb-3" style={{ color: "rgba(232,228,220,0.15)" }} />
           <p className="font-medium text-white">
             {bookings.length === 0 ? "No bookings yet" : "No matching bookings"}
@@ -191,7 +216,7 @@ export default function DashboardPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 animate-fade-in">
           {filtered.map((b) => {
             const status = STATUS_CONFIG[b.status as BookingStatus];
             return (
@@ -217,10 +242,11 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                           style={{
-                            background: status.bg.split(" ")[0].replace("bg-", ""),
+                            background: "rgba(255,255,255,0.04)",
                             color: status.color.replace("text-", ""),
+                            border: "1px solid rgba(255,255,255,0.08)",
                           }}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
@@ -229,7 +255,6 @@ export default function DashboardPage() {
                         <ChevronRight size={16} className="hidden sm:block" style={{ color: "rgba(232,228,220,0.15)" }} />
                       </div>
                     </div>
-
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                       <a
                         href={`tel:${b.client_phone}`}
@@ -246,7 +271,7 @@ export default function DashboardPage() {
                         GHS {b.project_value.toLocaleString()}
                       </span>
                       <span className="text-xs" style={{ color: "rgba(34,197,94,0.7)" }}>
-                        +GHS {b.commission_earned}
+                        +GHS {b.commission_earned.toLocaleString()}
                       </span>
                     </div>
                   </div>
