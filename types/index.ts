@@ -1,85 +1,90 @@
-export interface User {
+export interface SalesRep {
   id: string;
-  name: string;
+  user_id: string;
+  full_name: string;
   email: string;
-  role: string;
   phone?: string | null;
   region?: string | null;
-  avatar?: string | null;
-  createdAt: Date;
+  role: "rep" | "admin";
+  status: "active" | "inactive";
+  created_at: string;
 }
 
-export interface Customer {
+export interface Booking {
   id: string;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  company?: string | null;
-  address?: string | null;
-  city?: string | null;
-  status: string;
-  value: number;
-  repId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Deal {
-  id: string;
-  title: string;
-  value: number;
-  stage: string;
-  probability: number;
-  closeDate?: Date | null;
+  rep_id: string;
+  client_name: string;
+  client_phone: string;
+  client_email?: string | null;
+  client_location?: string | null;
+  service_type: string;
+  service_details: Record<string, unknown>;
+  project_value: number;
+  commission_earned: number;
   notes?: string | null;
-  repId: string;
-  customerId?: string | null;
-  customer?: Customer | null;
-  createdAt: Date;
-  updatedAt: Date;
+  status: "new" | "in_progress" | "completed" | "cancelled";
+  created_at: string;
+  updated_at: string;
+  // joined
+  sales_reps?: SalesRep;
 }
 
-export interface Activity {
+export interface SalesTarget {
   id: string;
-  type: string;
-  title: string;
-  description?: string | null;
-  date: Date;
-  duration?: number | null;
-  outcome?: string | null;
-  repId: string;
-  customerId?: string | null;
-  customer?: Customer | null;
-  createdAt: Date;
+  rep_id: string;
+  period: string;
+  target_amount: number;
+  achieved_amount: number;
 }
 
-export interface Note {
-  id: string;
-  content: string;
-  repId: string;
-  customerId?: string | null;
-  customer?: Customer | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type BookingStatus = Booking["status"];
+export type ServiceType =
+  | "Logo & Branding"
+  | "Signage"
+  | "Web Development"
+  | "Mobile App"
+  | "Video Advertising"
+  | "AI Music"
+  | "Celebration Package"
+  | "Other";
 
-export interface Target {
-  id: string;
-  month: number;
-  year: number;
-  revenue: number;
-  deals: number;
-  calls: number;
-  meetings: number;
-  repId: string;
-}
+export const SERVICE_TYPES: ServiceType[] = [
+  "Logo & Branding",
+  "Signage",
+  "Web Development",
+  "Mobile App",
+  "Video Advertising",
+  "AI Music",
+  "Celebration Package",
+  "Other",
+];
 
-export interface DashboardStats {
-  totalCustomers: number;
-  totalDeals: number;
-  totalRevenue: number;
-  wonDeals: number;
-  activeDeals: number;
-  recentActivities: number;
-  conversionRate: number;
-}
+export const STATUS_CONFIG: Record<
+  BookingStatus,
+  { label: string; color: string; bg: string; dot: string }
+> = {
+  new: {
+    label: "New",
+    color: "text-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/20",
+    dot: "bg-blue-400",
+  },
+  in_progress: {
+    label: "In Progress",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+    dot: "bg-amber-400",
+  },
+  completed: {
+    label: "Completed",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+    dot: "bg-emerald-400",
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+    dot: "bg-red-400",
+  },
+};

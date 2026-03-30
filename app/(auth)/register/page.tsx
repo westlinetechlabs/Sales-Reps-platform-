@@ -3,20 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TrendingUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase";
+import { Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
+    full_name: "",
     email: "",
     password: "",
-    role: "SALES_REP",
     phone: "",
     region: "",
+    role: "rep",
   });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -25,123 +25,177 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    if (form.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+    setLoading(true);
+    const supabase = createClient();
+
+    // 1. Sign up with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: { full_name: form.full_name },
+      },
+    });
+
+    if (authError) {
+      setLoading(false);
+      toast.error(authError.message);
+      return;
+    }
+
+    if (!authData.user) {
+      setLoading(false);
+      toast.error("Registration failed. Please try again.");
+      return;
+    }
+
+    // 2. Create sales_reps profile
+    const { error: profileError } = await supabase.from("sales_reps").insert({
+      user_id: authData.user.id,
+      full_name: form.full_name,
+      email: form.email,
+      phone: form.phone || null,
+      region: form.region || null,
+      role: form.role,
     });
 
     setLoading(false);
 
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "Registration failed");
-    } else {
-      router.push("/login?registered=true");
+    if (profileError) {
+      toast.error("Account created but profile setup failed. Contact admin.");
+      console.error(profileError);
+      return;
     }
+
+    toast.success("Account created! Redirecting...");
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-lg">
-        <div className="flex items-center gap-2 mb-8">
-          <TrendingUp size={24} className="text-blue-600" />
-          <span className="text-xl font-bold text-gray-900">SalesRep Platform</span>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#0a0700" }}>
+      <div className="w-full max-w-lg animate-fade-in">
+        <div className="flex items-center gap-3 mb-8">
+          <img
+            src="https://res.cloudinary.com/djayrwxns/image/upload/v1770785602/westline_logo_bmusvy.png"
+            alt="Westline Techlabs"
+            className="h-10"
+          />
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Create account</h2>
-          <p className="text-gray-500 text-sm mb-6">Join the sales platform</p>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-              {error}
-            </div>
-          )}
+        <div className="glass-card p-8">
+          <h2
+            className="text-2xl font-bold text-white mb-1"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            Create account
+          </h2>
+          <p className="text-sm mb-6" style={{ color: "rgba(232,228,220,0.5)" }}>
+            Join the Westline sales team
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
+                Full Name *
+              </label>
+              <input
+                name="full_name"
+                value={form.full_name}
+                onChange={handleChange}
+                required
+                placeholder="John Smith"
+                className="input-dark"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
+                Email *
+              </label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+                placeholder="john@company.com"
+                className="input-dark"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
+                Password *
+              </label>
+              <input
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                placeholder="Min. 6 characters"
+                className="input-dark"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full name *</label>
-                <input
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  required
-                  placeholder="John Smith"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                  placeholder="john@company.com"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                <input
-                  name="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                  placeholder="Min. 6 characters"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
+                  Phone
+                </label>
                 <input
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
-                  placeholder="+1 555 000 0000"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="+233 xxx xxxx"
+                  className="input-dark"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
+                  Region
+                </label>
                 <input
                   name="region"
                   value={form.region}
                   onChange={handleChange}
-                  placeholder="e.g. North East"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. Greater Accra"
+                  className="input-dark"
                 />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account type *</label>
-                <select
-                  name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="SALES_REP">Sales Representative</option>
-                  <option value="OWNER">Owner / Manager</option>
-                </select>
               </div>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" loading={loading}>
+            <div>
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
+                Account Type *
+              </label>
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="input-dark"
+              >
+                <option value="rep">Sales Representative</option>
+                <option value="admin">Owner / Manager</option>
+              </select>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn-gold w-full">
+              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
               Create account
-            </Button>
+            </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-4">
+          <p className="text-center text-sm mt-4" style={{ color: "rgba(232,228,220,0.4)" }}>
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 font-medium hover:underline">
+            <Link href="/login" className="font-medium hover:underline" style={{ color: "#F5A800" }}>
               Sign in
             </Link>
           </p>

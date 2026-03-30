@@ -1,27 +1,49 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
-  const isLoggedIn = !!req.auth;
+export async function proxy(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
 
-  // Public routes
-  const publicRoutes = ["/login", "/register"];
-  if (publicRoutes.includes(pathname)) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
     }
-    return NextResponse.next();
+  );
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const { pathname } = request.nextUrl;
+  const publicPaths = ["/login", "/register"];
+  const isPublic = publicPaths.includes(pathname);
+
+  if (!session && !isPublic) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Protected routes
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  if (session && isPublic) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.next();
-});
+  return supabaseResponse;
+}
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

@@ -1,118 +1,261 @@
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { OwnerDashboard } from "@/components/dashboard/owner-dashboard";
-import { RepDashboard } from "@/components/dashboard/rep-dashboard";
+"use client";
 
-export default async function DashboardPage() {
-  const session = await auth();
-  const user = session!.user as { id: string; role: string; name?: string | null };
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase";
+import Link from "next/link";
+import {
+  FileText, TrendingUp, Clock, DollarSign, Plus,
+  Search, Phone, ChevronRight, Loader2, Inbox,
+} from "lucide-react";
+import type { Booking, BookingStatus, SalesRep } from "@/types";
+import { STATUS_CONFIG } from "@/types";
+import toast from "react-hot-toast";
 
-  if (user.role === "OWNER") {
-    const reps = await prisma.user.findMany({
-      where: { role: "SALES_REP" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        region: true,
-        createdAt: true,
-        _count: {
-          select: { customers: true, deals: true, activities: true },
-        },
-      },
-      orderBy: { name: "asc" },
-    });
+const FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "new", label: "New" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
-    const [totalCustomers, totalDeals, wonDeals] = await Promise.all([
-      prisma.customer.count(),
-      prisma.deal.count(),
-      prisma.deal.count({ where: { stage: "CLOSED_WON" } }),
-    ]);
+export default function DashboardPage() {
+  const [rep, setRep] = useState<SalesRep | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
-    const revenueData = await prisma.deal.aggregate({
-      where: { stage: "CLOSED_WON" },
-      _sum: { value: true },
-    });
+  const fetchData = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-    const pipelineData = await prisma.deal.aggregate({
-      where: { stage: { notIn: ["CLOSED_WON", "CLOSED_LOST"] } },
-      _sum: { value: true },
-    });
+    const { data: profile } = await supabase
+      .from("sales_reps")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .single();
 
+    if (!profile) return;
+    setRep(profile);
+
+    const { data: bks, error } = await supabase
+      .from("sales_bookings")
+      .select("*")
+      .eq("rep_id", profile.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Failed to load bookings");
+      console.error(error);
+    } else {
+      setBookings(bks || []);
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const filtered = bookings.filter((b) => {
+    const matchFilter = filter === "all" || b.status === filter;
+    const matchSearch =
+      b.client_name.toLowerCase().includes(search.toLowerCase()) ||
+      b.service_type.toLowerCase().includes(search.toLowerCase()) ||
+      b.client_phone.includes(search);
+    return matchFilter && matchSearch;
+  });
+
+  const totalBookings = bookings.length;
+  const activeProjects = bookings.filter((b) => b.status === "in_progress").length;
+  const completedProjects = bookings.filter((b) => b.status === "completed").length;
+  const monthlyCommission = bookings
+    .filter((b) => {
+      const d = new Date(b.created_at);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, b) => sum + b.commission_earned, 0);
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  if (loading) {
     return (
-      <OwnerDashboard
-        reps={reps}
-        stats={{
-          totalReps: reps.length,
-          totalCustomers,
-          totalDeals,
-          wonDeals,
-          totalRevenue: revenueData._sum.value || 0,
-          pipelineValue: pipelineData._sum.value || 0,
-        }}
-      />
+      <div className="flex items-center justify-center h-full">
+        <Loader2 size={28} className="animate-spin" style={{ color: "#F5A800" }} />
+      </div>
     );
   }
 
-  // Sales Rep dashboard
-  const [customers, deals, activities] = await Promise.all([
-    prisma.customer.findMany({
-      where: { repId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    prisma.deal.findMany({
-      where: { repId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: { customer: { select: { name: true, company: true } } },
-    }),
-    prisma.activity.findMany({
-      where: { repId: user.id },
-      orderBy: { date: "desc" },
-      take: 10,
-      include: { customer: { select: { name: true } } },
-    }),
-  ]);
-
-  const [customerCount, dealCount, wonDealCount, revenueResult, pipelineResult] = await Promise.all([
-    prisma.customer.count({ where: { repId: user.id } }),
-    prisma.deal.count({ where: { repId: user.id } }),
-    prisma.deal.count({ where: { repId: user.id, stage: "CLOSED_WON" } }),
-    prisma.deal.aggregate({ where: { repId: user.id, stage: "CLOSED_WON" }, _sum: { value: true } }),
-    prisma.deal.aggregate({
-      where: { repId: user.id, stage: { notIn: ["CLOSED_WON", "CLOSED_LOST"] } },
-      _sum: { value: true },
-    }),
-  ]);
-
-  const now = new Date();
-  const target = await prisma.target.findUnique({
-    where: {
-      repId_month_year: {
-        repId: user.id,
-        month: now.getMonth() + 1,
-        year: now.getFullYear(),
-      },
-    },
-  });
-
   return (
-    <RepDashboard
-      user={user}
-      recentCustomers={customers}
-      recentDeals={deals}
-      recentActivities={activities}
-      stats={{
-        totalCustomers: customerCount,
-        totalDeals: dealCount,
-        wonDeals: wonDealCount,
-        totalRevenue: revenueResult._sum.value || 0,
-        pipelineValue: pipelineResult._sum.value || 0,
-        conversionRate: dealCount > 0 ? Math.round((wonDealCount / dealCount) * 100) : 0,
-      }}
-      target={target}
-    />
+    <div className="p-4 lg:p-6 max-w-6xl mx-auto animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 pt-12 lg:pt-0">
+        <div>
+          <h1
+            className="text-2xl lg:text-3xl font-bold text-white"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            Welcome back, {rep?.full_name.split(" ")[0]}!
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>{today}</p>
+        </div>
+        <Link href="/dashboard/bookings/new" className="btn-gold">
+          <Plus size={16} /> New Booking
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Total Bookings", value: totalBookings, icon: <FileText size={20} />, color: "#3b82f6" },
+          { label: "Active Projects", value: activeProjects, icon: <Clock size={20} />, color: "#F5A800" },
+          { label: "Completed", value: completedProjects, icon: <TrendingUp size={20} />, color: "#22c55e" },
+          { label: "This Month's Commission", value: `GHS ${monthlyCommission}`, icon: <DollarSign size={20} />, color: "#F5A800" },
+        ].map((stat) => (
+          <div key={stat.label} className="glass-card p-4 lg:p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium" style={{ color: "rgba(232,228,220,0.4)" }}>{stat.label}</p>
+                <p
+                  className="text-xl lg:text-2xl font-bold mt-1 text-white"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                >
+                  {stat.value}
+                </p>
+              </div>
+              <div
+                className="p-2.5 rounded-xl"
+                style={{ background: `${stat.color}15`, color: stat.color }}
+              >
+                {stat.icon}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters and Search */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: "rgba(232,228,220,0.3)" }} />
+          <input
+            placeholder="Search bookings..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-dark pl-10"
+          />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className="px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
+              style={{
+                background: filter === f.value ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
+                color: filter === f.value ? "#000" : "rgba(232,228,220,0.5)",
+                border: `1px solid ${filter === f.value ? "transparent" : "rgba(255,255,255,0.08)"}`,
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bookings list */}
+      {filtered.length === 0 ? (
+        <div className="glass-card py-16 text-center">
+          <Inbox size={40} className="mx-auto mb-3" style={{ color: "rgba(232,228,220,0.15)" }} />
+          <p className="font-medium text-white">
+            {bookings.length === 0 ? "No bookings yet" : "No matching bookings"}
+          </p>
+          <p className="text-sm mt-1" style={{ color: "rgba(232,228,220,0.3)" }}>
+            {bookings.length === 0
+              ? "Go make your first sale!"
+              : "Try adjusting your search or filters"}
+          </p>
+          {bookings.length === 0 && (
+            <Link href="/dashboard/bookings/new" className="btn-gold mt-4 inline-flex">
+              <Plus size={14} /> Create First Booking
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((b) => {
+            const status = STATUS_CONFIG[b.status as BookingStatus];
+            return (
+              <Link
+                key={b.id}
+                href={`/dashboard/bookings/${b.id}`}
+                className="glass-card glass-card-hover block p-4 lg:p-5 transition-all group"
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+                    style={{ background: "rgba(245,168,0,0.1)", color: "#F5A800" }}
+                  >
+                    {b.client_name[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white truncate">{b.client_name}</p>
+                        <p className="text-sm mt-0.5 truncate" style={{ color: "rgba(232,228,220,0.4)" }}>
+                          {b.service_type}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
+                          style={{
+                            background: status.bg.split(" ")[0].replace("bg-", ""),
+                            color: status.color.replace("text-", ""),
+                          }}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                          {status.label}
+                        </span>
+                        <ChevronRight size={16} className="hidden sm:block" style={{ color: "rgba(232,228,220,0.15)" }} />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+                      <a
+                        href={`tel:${b.client_phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 text-xs hover:underline"
+                        style={{ color: "rgba(232,228,220,0.35)" }}
+                      >
+                        <Phone size={11} /> {b.client_phone}
+                      </a>
+                      <span className="text-xs" style={{ color: "rgba(232,228,220,0.25)" }}>
+                        {new Date(b.created_at).toLocaleDateString()}
+                      </span>
+                      <span className="text-xs font-semibold" style={{ color: "#F5A800" }}>
+                        GHS {b.project_value.toLocaleString()}
+                      </span>
+                      <span className="text-xs" style={{ color: "rgba(34,197,94,0.7)" }}>
+                        +GHS {b.commission_earned}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
