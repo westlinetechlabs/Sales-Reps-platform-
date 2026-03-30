@@ -1,25 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState({
     full_name: "",
     email: "",
     password: "",
     phone: "",
     region: "",
-    role: "rep",
   });
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
@@ -54,14 +52,15 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2. Create sales_reps profile
+    // 2. Create profile — status: 'inactive' until admin approves
     const { error: profileError } = await supabase.from("sales_reps").insert({
       user_id: authData.user.id,
       full_name: form.full_name,
       email: form.email,
       phone: form.phone || null,
       region: form.region || null,
-      role: form.role,
+      role: "rep",        // always rep — only admin can promote
+      status: "inactive", // must be approved before access is granted
     });
 
     setLoading(false);
@@ -72,9 +71,41 @@ export default function RegisterPage() {
       return;
     }
 
-    toast.success("Account created! Redirecting...");
-    router.push("/dashboard");
-    router.refresh();
+    setSubmitted(true);
+  }
+
+  // ── Pending screen (shown after successful registration) ──
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#0a0700" }}>
+        <div className="w-full max-w-md animate-fade-in text-center">
+          <div className="glass-card p-10">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+              style={{ background: "rgba(245,168,0,0.1)" }}
+            >
+              <Clock size={32} style={{ color: "#F5A800" }} />
+            </div>
+            <h2
+              className="text-2xl font-bold text-white mb-3"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Request submitted
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(232,228,220,0.5)" }}>
+              Your account has been created and is <strong className="text-white">pending approval</strong> by
+              the admin. You&apos;ll be able to log in once your account is activated.
+            </p>
+            <p className="text-xs mt-4" style={{ color: "rgba(232,228,220,0.3)" }}>
+              Contact your manager if you need urgent access.
+            </p>
+            <Link href="/login" className="btn-ghost w-full mt-6 inline-flex items-center justify-center">
+              Back to sign in
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -93,10 +124,10 @@ export default function RegisterPage() {
             className="text-2xl font-bold text-white mb-1"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            Create account
+            Request access
           </h2>
           <p className="text-sm mb-6" style={{ color: "rgba(232,228,220,0.5)" }}>
-            Join the Westline sales team
+            Submit your details — an admin will approve your account
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,29 +203,14 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
-                Account Type *
-              </label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="input-dark"
-              >
-                <option value="rep">Sales Representative</option>
-                <option value="admin">Owner / Manager</option>
-              </select>
-            </div>
-
             <button type="submit" disabled={loading} className="btn-gold w-full">
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-              Create account
+              Request access
             </button>
           </form>
 
           <p className="text-center text-sm mt-4" style={{ color: "rgba(232,228,220,0.4)" }}>
-            Already have an account?{" "}
+            Already approved?{" "}
             <Link href="/login" className="font-medium hover:underline" style={{ color: "#F5A800" }}>
               Sign in
             </Link>

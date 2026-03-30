@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import type { SalesRep } from "@/types";
-import { AlertTriangle, RefreshCw, LogOut } from "lucide-react";
+import { AlertTriangle, RefreshCw, LogOut, Clock } from "lucide-react";
 
-type LoadState = "loading" | "ready" | "no_profile" | "no_table" | "error";
+type LoadState = "loading" | "ready" | "pending" | "no_profile" | "no_table" | "error";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -46,14 +46,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      // Profile found — proceed
+      // Profile found — check if approved
       if (profile) {
+        if (profile.status === "inactive") {
+          setLoadState("pending");
+          return;
+        }
         setRep(profile);
         setLoadState("ready");
         return;
       }
 
-      // No profile row yet — auto-create as rep
+      // No profile row yet — auto-create as rep (inactive, pending approval)
       const meta = session.user.user_metadata as { full_name?: string };
       const { data: newProfile, error: insertError } = await supabase
         .from("sales_reps")
@@ -62,6 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           full_name: meta?.full_name || session.user.email?.split("@")[0] || "User",
           email: session.user.email || "",
           role: "rep",
+          status: "inactive",
         })
         .select()
         .single();
@@ -101,6 +106,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{ borderColor: "#F5A800", borderTopColor: "transparent" }}
           />
           <p className="text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>Loading your portal…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Pending approval
+  if (loadState === "pending") {
+    return (
+      <div className="h-screen flex items-center justify-center p-6" style={{ background: "#0a0700" }}>
+        <div className="glass-card p-8 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: "rgba(245,168,0,0.1)" }}>
+            <Clock size={28} style={{ color: "#F5A800" }} />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Awaiting approval
+          </h2>
+          <p className="text-sm mb-6" style={{ color: "rgba(232,228,220,0.5)" }}>
+            Your account is pending review by the admin. You&apos;ll have full access once approved.
+            Contact your manager if you need urgent access.
+          </p>
+          <button onClick={handleSignOut} className="btn-ghost w-full">
+            <LogOut size={14} /> Sign out
+          </button>
         </div>
       </div>
     );

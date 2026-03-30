@@ -434,7 +434,7 @@ export default function AdminPage() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-white">Add a new team member</p>
               <p className="text-xs mt-0.5" style={{ color: "rgba(232,228,220,0.4)" }}>
-                Share the sign-up link with your employee. Once they register, they appear here automatically.
+                Share the sign-up link. New accounts are <strong className="text-white">pending</strong> until you approve them here.
               </p>
             </div>
             <button
@@ -446,14 +446,65 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {/* Reps list */}
-          {reps.length === 0 ? (
+          {/* Pending approvals */}
+          {reps.filter((r) => r.status === "inactive" && r.id !== rep.id).length > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "rgba(245,168,0,0.7)" }}>
+                Pending Approval ({reps.filter((r) => r.status === "inactive" && r.id !== rep.id).length})
+              </p>
+              <div className="space-y-2">
+                {reps
+                  .filter((r) => r.status === "inactive" && r.id !== rep.id)
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="glass-card p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+                      style={{ borderColor: "rgba(245,168,0,0.25)" }}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                          style={{ background: "rgba(245,168,0,0.15)", color: "#F5A800" }}
+                        >
+                          {r.full_name[0]?.toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white truncate">{r.full_name}</p>
+                          <p className="text-xs truncate" style={{ color: "rgba(232,228,220,0.4)" }}>
+                            {r.email}{r.phone && ` · ${r.phone}`}{r.region && ` · ${r.region}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => toggleRepStatus(r.id, "inactive")}
+                          className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+                          style={{ background: "linear-gradient(135deg, #F5A800, #D4920A)", color: "#000" }}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => removeRep(r.id, r.full_name)}
+                          className="p-2 rounded-xl"
+                          style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444" }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active reps list */}
+          {reps.filter((r) => r.status === "active").length === 0 ? (
             <div className="glass-card py-16 text-center">
               <p className="text-sm" style={{ color: "rgba(232,228,220,0.3)" }}>No team members yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {reps.map((r) => {
+              {reps.filter((r) => r.status === "active").map((r) => {
                 const isMe = r.id === rep.id;
                 const repBookings = bookings.filter((b) => b.rep_id === r.id);
                 return (
