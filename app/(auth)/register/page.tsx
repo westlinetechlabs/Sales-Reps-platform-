@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
-import { Loader2, Clock } from "lucide-react";
+import { Loader2, Clock, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function RegisterPage() {
@@ -14,6 +14,7 @@ export default function RegisterPage() {
     phone: "",
     region: "",
   });
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -31,17 +32,24 @@ export default function RegisterPage() {
     setLoading(true);
     const supabase = createClient();
 
-    // 1. Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: {
-        data: { full_name: form.full_name },
-      },
+      options: { data: { full_name: form.full_name } },
     });
 
     if (authError) {
       setLoading(false);
+      // Supabase returns this when email is already taken
+      if (
+        authError.message.toLowerCase().includes("already registered") ||
+        authError.message.toLowerCase().includes("already been registered") ||
+        authError.message.toLowerCase().includes("user already exists")
+      ) {
+        toast.error("This email is already registered. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
       toast.error(authError.message);
       return;
     }
@@ -52,15 +60,23 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2. Create profile — status: 'inactive' until admin approves
+    // Supabase returns a user with empty identities when email already exists
+    // (to prevent enumeration). Redirect to login instead.
+    if (authData.user.identities && authData.user.identities.length === 0) {
+      setLoading(false);
+      toast.error("This email is already registered. Please sign in — your access request will be created automatically.");
+      return;
+    }
+
+    // Create profile — inactive until admin approves
     const { error: profileError } = await supabase.from("sales_reps").insert({
       user_id: authData.user.id,
       full_name: form.full_name,
       email: form.email,
       phone: form.phone || null,
       region: form.region || null,
-      role: "rep",        // always rep — only admin can promote
-      status: "inactive", // must be approved before access is granted
+      role: "rep",
+      status: "inactive",
     });
 
     setLoading(false);
@@ -74,7 +90,6 @@ export default function RegisterPage() {
     setSubmitted(true);
   }
 
-  // ── Pending screen (shown after successful registration) ──
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#0a0700" }}>
@@ -93,8 +108,8 @@ export default function RegisterPage() {
               Request submitted
             </h2>
             <p className="text-sm leading-relaxed" style={{ color: "rgba(232,228,220,0.5)" }}>
-              Your account has been created and is <strong className="text-white">pending approval</strong> by
-              the admin. You&apos;ll be able to log in once your account is activated.
+              Your account is <strong className="text-white">pending approval</strong> by the admin.
+              You&apos;ll have full access once approved.
             </p>
             <p className="text-xs mt-4" style={{ color: "rgba(232,228,220,0.3)" }}>
               Contact your manager if you need urgent access.
@@ -164,16 +179,26 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.7)" }}>
                 Password *
               </label>
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                minLength={6}
-                placeholder="Min. 6 characters"
-                className="input-dark"
-              />
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPw ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  minLength={6}
+                  placeholder="Min. 6 characters"
+                  className="input-dark pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "rgba(232,228,220,0.3)" }}
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -210,7 +235,7 @@ export default function RegisterPage() {
           </form>
 
           <p className="text-center text-sm mt-4" style={{ color: "rgba(232,228,220,0.4)" }}>
-            Already approved?{" "}
+            Already have an account?{" "}
             <Link href="/login" className="font-medium hover:underline" style={{ color: "#F5A800" }}>
               Sign in
             </Link>

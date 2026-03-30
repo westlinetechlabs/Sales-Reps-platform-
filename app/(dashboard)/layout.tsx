@@ -77,8 +77,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      setRep(newProfile);
-      setLoadState("ready");
+      // Newly created profile is inactive — must wait for admin approval
+      setLoadState("pending");
     }
 
     checkAuth();

@@ -310,12 +310,13 @@ export default function AdminPage() {
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: "rgba(232,228,220,0.3)" }} />
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(232,228,220,0.3)" }} />
               <input
                 placeholder="Search bookings..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-dark pl-10"
+                className="input-dark"
+                style={{ paddingLeft: "2.5rem" }}
               />
             </div>
             <select
