@@ -5,11 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import {
   LayoutDashboard, Plus, UserCircle, LogOut,
-  ChevronRight, Shield, Menu, X, Wallet, Trash2,
+  ChevronRight, Shield, Menu, X, Wallet, Trash2, BarChart2,
 } from "lucide-react";
 import type { SalesRep } from "@/types";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SidebarProps {
   rep: SalesRep;
@@ -23,11 +23,12 @@ export function Sidebar({ rep }: SidebarProps) {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const links = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard",              label: "Dashboard",   icon: LayoutDashboard },
     { href: "/dashboard/bookings/new", label: "New Booking", icon: Plus },
-    { href: "/dashboard/bookings/bin", label: "Bin", icon: Trash2 },
-    { href: "/dashboard/withdrawals", label: "Withdrawals", icon: Wallet },
-    { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
+    { href: "/dashboard/reports",      label: "Reports",     icon: BarChart2 },
+    { href: "/dashboard/bookings/bin", label: "Bin",         icon: Trash2 },
+    { href: "/dashboard/withdrawals",  label: "Withdrawals", icon: Wallet },
+    { href: "/dashboard/profile",      label: "Profile",     icon: UserCircle },
     ...(isAdmin ? [{ href: "/admin", label: "Admin Panel", icon: Shield }] : []),
   ];
 
@@ -37,22 +38,35 @@ export function Sidebar({ rep }: SidebarProps) {
     router.push("/login");
   }
 
+  const roleLabel =
+    rep.role === "owner"   ? "Owner"   :
+    rep.role === "manager" ? "Manager" : "Sales Rep";
+
   const nav = (
-    <>
+    <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+      <div
+        className="px-5 py-5 border-b shrink-0"
+        style={{ borderColor: "var(--border-6)" }}
+      >
         <img
           src="https://res.cloudinary.com/djayrwxns/image/upload/v1770785602/westline_logo_bmusvy.png"
           alt="Westline Techlabs"
-          className="h-8"
+          className="h-12 lg:h-14"
         />
-        <p className="text-[10px] mt-1 tracking-wider font-medium" style={{ color: "rgba(245,168,0,0.5)" }}>
+        <p
+          className="text-xs mt-1.5 tracking-widest font-semibold"
+          style={{ color: "var(--gold-50)" }}
+        >
           SALES PORTAL
         </p>
       </div>
 
       {/* User info */}
-      <div className="mx-3 mt-4 p-3 rounded-xl" style={{ background: "rgba(245,168,0,0.06)", border: "1px solid rgba(245,168,0,0.1)" }}>
+      <div
+        className="mx-3 mt-4 p-3 rounded-xl shrink-0"
+        style={{ background: "var(--gold-06)", border: "1px solid var(--gold-10)" }}
+      >
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
@@ -65,17 +79,20 @@ export function Sidebar({ rep }: SidebarProps) {
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{rep.full_name}</p>
-            <p className="text-xs capitalize" style={{ color: "rgba(245,168,0,0.6)" }}>
-              {rep.role === "owner" ? "Owner" : rep.role === "manager" ? "Manager" : "Sales Rep"}
+            <p className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>
+              {rep.full_name}
             </p>
+            <p className="text-xs" style={{ color: "var(--gold-60)" }}>{roleLabel}</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        <p className="px-3 text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "rgba(232,228,220,0.3)" }}>
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <p
+          className="px-3 text-[10px] font-semibold uppercase tracking-wider mb-2"
+          style={{ color: "var(--text-30)" }}
+        >
           Menu
         </p>
         {links.map((link) => {
@@ -90,18 +107,21 @@ export function Sidebar({ rep }: SidebarProps) {
               <Link
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={{
-                  background: isActive ? "rgba(245,168,0,0.1)" : "transparent",
-                  color: isActive ? "#F5A800" : "rgba(232,228,220,0.5)",
-                  border: isActive ? "1px solid rgba(245,168,0,0.15)" : "1px solid transparent",
+                  background: isActive ? "var(--gold-10)" : "transparent",
+                  color: isActive ? "#F5A800" : "var(--text-50)",
+                  border: isActive ? "1px solid var(--gold-15)" : "1px solid transparent",
                 }}
               >
                 <motion.div
                   animate={isActive ? { scale: 1.15 } : { scale: 1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 >
-                  <Icon size={17} style={{ color: isActive ? "#F5A800" : "rgba(232,228,220,0.3)" }} />
+                  <Icon
+                    size={17}
+                    style={{ color: isActive ? "#F5A800" : "var(--text-30)" }}
+                  />
                 </motion.div>
                 <span className="flex-1">{link.label}</span>
                 {isActive && (
@@ -120,7 +140,7 @@ export function Sidebar({ rep }: SidebarProps) {
       </nav>
 
       {/* Sign out */}
-      <div className="px-3 pb-5">
+      <div className="px-3 pb-5 shrink-0">
         {confirmSignOut ? (
           <div
             className="p-3 rounded-xl space-y-2"
@@ -133,7 +153,7 @@ export function Sidebar({ rep }: SidebarProps) {
               <button
                 onClick={() => setConfirmSignOut(false)}
                 className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
-                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(232,228,220,0.5)" }}
+                style={{ background: "var(--surface-6)", color: "var(--text-50)" }}
               >
                 Cancel
               </button>
@@ -161,41 +181,74 @@ export function Sidebar({ rep }: SidebarProps) {
           </button>
         )}
       </div>
-    </>
+    </div>
   );
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* ── Mobile hamburger — fixed, opaque background so content scrolls behind ── */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-xl lg:hidden"
-        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+        className="fixed top-4 left-4 z-40 p-2.5 rounded-xl lg:hidden"
+        style={{
+          background: "var(--page-bg)",
+          border: "1px solid var(--border-10)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+        }}
       >
         <Menu size={20} style={{ color: "#F5A800" }} />
       </button>
 
-      {/* Mobile sidebar overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-64 h-full flex flex-col" style={{ background: "#0d0a02", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
-            <button
+      {/* ── Mobile slide-in drawer ── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              className="fixed inset-0 z-50 lg:hidden"
+              style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
               onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 p-1"
-              style={{ color: "rgba(232,228,220,0.4)" }}
-            >
-              <X size={18} />
-            </button>
-            {nav}
-          </aside>
-        </div>
-      )}
+            />
 
-      {/* Desktop sidebar */}
+            {/* Drawer */}
+            <motion.aside
+              key="drawer"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className="fixed left-0 top-0 w-72 h-full z-50 lg:hidden"
+              style={{
+                background: "var(--sidebar-bg)",
+                borderRight: "1px solid var(--border-6)",
+                boxShadow: "4px 0 30px rgba(0,0,0,0.4)",
+              }}
+            >
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="absolute top-4 right-4 p-1 rounded-lg"
+                style={{ color: "var(--text-40)" }}
+              >
+                <X size={18} />
+              </button>
+              {nav}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Desktop sidebar ── */}
       <aside
         className="w-64 hidden lg:flex flex-col h-full shrink-0"
-        style={{ background: "#0d0a02", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+        style={{
+          background: "var(--sidebar-bg)",
+          borderRight: "1px solid var(--border-6)",
+        }}
       >
         {nav}
       </aside>

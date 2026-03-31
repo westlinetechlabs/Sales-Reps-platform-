@@ -145,7 +145,7 @@ export default function WithdrawalsPage() {
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Withdrawals
           </h1>
-          <p className="text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>
+          <p className="text-sm" style={{ color: "var(--text-40)" }}>
             Request commission payouts
           </p>
         </div>
@@ -154,9 +154,9 @@ export default function WithdrawalsPage() {
       {/* Balance card */}
       <div
         className="glass-card p-6 mb-6"
-        style={{ borderColor: "rgba(245,168,0,0.2)", background: "rgba(245,168,0,0.04)" }}
+        style={{ borderColor: "var(--gold-20)", background: "var(--gold-06)" }}
       >
-        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "rgba(245,168,0,0.6)" }}>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--gold-60)" }}>
           Available Balance
         </p>
         <p
@@ -165,7 +165,7 @@ export default function WithdrawalsPage() {
         >
           ₵{balance.toLocaleString()}
         </p>
-        <p className="text-xs" style={{ color: "rgba(232,228,220,0.3)" }}>
+        <p className="text-xs" style={{ color: "var(--text-30)" }}>
           Total earned minus completed withdrawals · Min. ₵{MIN_WITHDRAWAL} to withdraw
         </p>
 
@@ -181,7 +181,7 @@ export default function WithdrawalsPage() {
           ) : hasPendingOrApproved ? (
             <div
               className="flex items-center gap-2 p-3 rounded-xl text-sm"
-              style={{ background: "rgba(245,168,0,0.08)", color: "#F5A800" }}
+              style={{ background: "var(--gold-10)", color: "#F5A800" }}
             >
               <Clock size={15} />
               You have an open request. Wait for it to complete before requesting again.
@@ -199,12 +199,12 @@ export default function WithdrawalsPage() {
 
       {/* Request form */}
       {showForm && (
-        <div className="glass-card p-5 mb-6 animate-fade-in" style={{ borderColor: "rgba(245,168,0,0.2)" }}>
+        <div className="glass-card p-5 mb-6 animate-fade-in" style={{ borderColor: "var(--gold-20)" }}>
           <div className="flex items-center justify-between mb-4">
             <p className="font-semibold text-white">New Withdrawal Request</p>
             <button
               onClick={() => { setShowForm(false); setAmount(""); setRepNote(""); }}
-              style={{ color: "rgba(232,228,220,0.3)" }}
+              style={{ color: "var(--text-30)" }}
             >
               <X size={18} />
             </button>
@@ -212,7 +212,7 @@ export default function WithdrawalsPage() {
 
           <form onSubmit={handleRequest} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Amount (₵) — max ₵{balance.toLocaleString()}
               </label>
               <input
@@ -228,7 +228,7 @@ export default function WithdrawalsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Note (optional)
               </label>
               <textarea
@@ -244,14 +244,14 @@ export default function WithdrawalsPage() {
             {parseFloat(amount) >= MIN_WITHDRAWAL && parseFloat(amount) <= balance && (
               <div
                 className="p-3 rounded-xl text-sm"
-                style={{ background: "rgba(245,168,0,0.06)", border: "1px solid rgba(245,168,0,0.1)" }}
+                style={{ background: "var(--gold-06)", border: "1px solid var(--gold-10)" }}
               >
                 <div className="flex justify-between">
-                  <span style={{ color: "rgba(232,228,220,0.5)" }}>Requesting</span>
+                  <span style={{ color: "var(--text-50)" }}>Requesting</span>
                   <span className="font-bold" style={{ color: "#F5A800" }}>₵{parseFloat(amount).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span style={{ color: "rgba(232,228,220,0.5)" }}>Balance after (once completed)</span>
+                  <span style={{ color: "var(--text-50)" }}>Balance after (once completed)</span>
                   <span className="font-semibold text-white">₵{(balance - parseFloat(amount)).toLocaleString()}</span>
                 </div>
               </div>
@@ -276,14 +276,14 @@ export default function WithdrawalsPage() {
 
       {/* History */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "rgba(232,228,220,0.3)" }}>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-30)" }}>
           Request History
         </p>
 
         {withdrawals.length === 0 ? (
           <div className="glass-card py-12 text-center">
-            <Wallet size={36} className="mx-auto mb-3" style={{ color: "rgba(232,228,220,0.1)" }} />
-            <p className="text-sm" style={{ color: "rgba(232,228,220,0.3)" }}>No withdrawal requests yet</p>
+            <Wallet size={36} className="mx-auto mb-3" style={{ color: "var(--text-20)" }} />
+            <p className="text-sm" style={{ color: "var(--text-30)" }}>No withdrawal requests yet</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -307,7 +307,7 @@ export default function WithdrawalsPage() {
                           {cfg.icon} {cfg.label}
                         </span>
                       </div>
-                      <p className="text-xs" style={{ color: "rgba(232,228,220,0.3)" }}>
+                      <p className="text-xs" style={{ color: "var(--text-30)" }}>
                         Requested {new Date(w.requested_at).toLocaleDateString("en-US", {
                           day: "numeric", month: "short", year: "numeric",
                         })}
@@ -316,14 +316,14 @@ export default function WithdrawalsPage() {
                         })}`}
                       </p>
                       {w.rep_note && (
-                        <p className="text-xs mt-1" style={{ color: "rgba(232,228,220,0.4)" }}>
+                        <p className="text-xs mt-1" style={{ color: "var(--text-40)" }}>
                           Your note: {w.rep_note}
                         </p>
                       )}
                       {w.admin_note && (
                         <p
                           className="text-xs mt-1 italic"
-                          style={{ color: w.status === "rejected" ? "#f87171" : "rgba(232,228,220,0.4)" }}
+                          style={{ color: w.status === "rejected" ? "#f87171" : "var(--text-40)" }}
                         >
                           Admin: {w.admin_note}
                         </p>

@@ -189,7 +189,7 @@ export default function NewBookingPage() {
       <Link
         href="/dashboard"
         className="inline-flex items-center gap-2 text-sm mb-6 pt-12 lg:pt-0"
-        style={{ color: "rgba(232,228,220,0.4)" }}
+        style={{ color: "var(--text-40)" }}
       >
         <ArrowLeft size={16} /> Back to Dashboard
       </Link>
@@ -214,7 +214,7 @@ export default function NewBookingPage() {
       {isOnline && pendingCount > 0 && (
         <div
           className="flex items-center gap-3 p-3 rounded-xl mb-4"
-          style={{ background: "rgba(245,168,0,0.08)", border: "1px solid rgba(245,168,0,0.2)" }}
+          style={{ background: "rgba(245,168,0,0.08)", border: "1px solid var(--gold-20)" }}
         >
           {syncing ? (
             <Loader2 size={16} className="animate-spin" style={{ color: "#F5A800" }} />
@@ -230,7 +230,7 @@ export default function NewBookingPage() {
             <button
               onClick={syncPendingBookings}
               className="text-xs flex items-center gap-1"
-              style={{ color: "rgba(245,168,0,0.6)" }}
+              style={{ color: "var(--gold-60)" }}
             >
               <RefreshCw size={12} /> Sync now
             </button>
@@ -244,7 +244,7 @@ export default function NewBookingPage() {
       >
         New Booking
       </h1>
-      <p className="text-sm mb-6" style={{ color: "rgba(232,228,220,0.4)" }}>
+      <p className="text-sm mb-6" style={{ color: "var(--text-40)" }}>
         {isOnline ? "Record a new client booking" : "Working offline — booking will sync when connected"}
       </p>
 
@@ -254,7 +254,7 @@ export default function NewBookingPage() {
           <p className="text-sm font-semibold text-white mb-4">Client Information</p>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Client Name *
               </label>
               <input
@@ -268,7 +268,7 @@ export default function NewBookingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                   Phone / WhatsApp *
                 </label>
                 <input
@@ -281,7 +281,7 @@ export default function NewBookingPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                   Email (optional)
                 </label>
                 <input
@@ -295,7 +295,7 @@ export default function NewBookingPage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Client Location
               </label>
               <input
@@ -314,7 +314,7 @@ export default function NewBookingPage() {
           <p className="text-sm font-semibold text-white mb-4">Service Details</p>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Service Type *
               </label>
               <select
@@ -329,7 +329,7 @@ export default function NewBookingPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Service Details
               </label>
               <textarea
@@ -349,7 +349,7 @@ export default function NewBookingPage() {
           <p className="text-sm font-semibold text-white mb-4">Pricing & Notes</p>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Estimated Project Value (₵) *
               </label>
               <input
@@ -368,11 +368,11 @@ export default function NewBookingPage() {
             {projectValue > 0 && (
               <div
                 className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ background: "rgba(245,168,0,0.08)", border: "1px solid rgba(245,168,0,0.15)" }}
+                style={{ background: "rgba(245,168,0,0.08)", border: "1px solid var(--gold-15)" }}
               >
                 <DollarSign size={18} style={{ color: "#F5A800" }} />
                 <div>
-                  <p className="text-xs" style={{ color: "rgba(245,168,0,0.6)" }}>Your commission</p>
+                  <p className="text-xs" style={{ color: "var(--gold-60)" }}>Your commission</p>
                   <p className="text-lg font-bold" style={{ color: "#F5A800", fontFamily: "'Space Grotesk', sans-serif" }}>
                     ₵{commission}
                   </p>
@@ -381,7 +381,7 @@ export default function NewBookingPage() {
             )}
 
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "rgba(232,228,220,0.5)" }}>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-50)" }}>
                 Notes
               </label>
               <textarea

@@ -126,7 +126,7 @@ export default function DashboardPage() {
           >
             Welcome back, {rep?.full_name.split(" ")[0]}!
           </h1>
-          <p className="mt-1 text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>{today}</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-40)" }}>{today}</p>
         </div>
         <div className="flex gap-2">
           <Link href="/dashboard/bookings/bin" className="btn-ghost text-sm">
@@ -149,7 +149,7 @@ export default function DashboardPage() {
           <div key={stat.label} className="glass-card p-4 lg:p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium" style={{ color: "rgba(232,228,220,0.4)" }}>{stat.label}</p>
+                <p className="text-xs font-medium" style={{ color: "var(--text-40)" }}>{stat.label}</p>
                 <p
                   className="text-xl lg:text-2xl font-bold mt-1 text-white"
                   style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           <Search
             size={15}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: "rgba(232,228,220,0.3)" }}
+            style={{ color: "var(--text-30)" }}
           />
           <input
             placeholder="Search bookings..."
@@ -191,9 +191,9 @@ export default function DashboardPage() {
               transition={{ type: "spring", stiffness: 500, damping: 20 }}
               className="px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap relative overflow-hidden"
               style={{
-                background: filter === f.value ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
-                color: filter === f.value ? "#000" : "rgba(232,228,220,0.5)",
-                border: `1px solid ${filter === f.value ? "transparent" : "rgba(255,255,255,0.08)"}`,
+                background: filter === f.value ? "linear-gradient(135deg, #F5A800, #D4920A)" : "var(--surface-4)",
+                color: filter === f.value ? "#000" : "var(--text-50)",
+                border: `1px solid ${filter === f.value ? "transparent" : "var(--border-8)"}`,
               }}
             >
               {filter === f.value && (
@@ -231,11 +231,11 @@ export default function DashboardPage() {
           transition={{ duration: 0.22, ease: "easeOut" }}
           className="glass-card py-16 text-center"
         >
-          <Inbox size={40} className="mx-auto mb-3" style={{ color: "rgba(232,228,220,0.15)" }} />
+          <Inbox size={40} className="mx-auto mb-3" style={{ color: "var(--text-20)" }} />
           <p className="font-medium text-white">
             {bookings.length === 0 ? "No bookings yet" : "No matching bookings"}
           </p>
-          <p className="text-sm mt-1" style={{ color: "rgba(232,228,220,0.3)" }}>
+          <p className="text-sm mt-1" style={{ color: "var(--text-30)" }}>
             {bookings.length === 0
               ? "Go make your first sale!"
               : "Try adjusting your search or filters"}
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                 <div className="flex items-start gap-4">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
-                    style={{ background: "rgba(245,168,0,0.1)", color: "#F5A800" }}
+                    style={{ background: "var(--gold-10)", color: "#F5A800" }}
                   >
                     {b.client_name[0]?.toUpperCase()}
                   </div>
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-semibold text-white truncate">{b.client_name}</p>
-                        <p className="text-sm mt-0.5 truncate" style={{ color: "rgba(232,228,220,0.4)" }}>
+                        <p className="text-sm mt-0.5 truncate" style={{ color: "var(--text-40)" }}>
                           {b.service_type}
                         </p>
                       </div>
@@ -282,15 +282,15 @@ export default function DashboardPage() {
                         <span
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                           style={{
-                            background: "rgba(255,255,255,0.04)",
+                            background: "var(--surface-4)",
                             color: status.color.replace("text-", ""),
-                            border: "1px solid rgba(255,255,255,0.08)",
+                            border: "1px solid var(--border-8)",
                           }}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                           {status.label}
                         </span>
-                        <ChevronRight size={16} className="hidden sm:block" style={{ color: "rgba(232,228,220,0.15)" }} />
+                        <ChevronRight size={16} className="hidden sm:block" style={{ color: "var(--text-20)" }} />
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
@@ -298,11 +298,11 @@ export default function DashboardPage() {
                         href={`tel:${b.client_phone}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1 text-xs hover:underline"
-                        style={{ color: "rgba(232,228,220,0.35)" }}
+                        style={{ color: "var(--text-35)" }}
                       >
                         <Phone size={11} /> {b.client_phone}
                       </a>
-                      <span className="text-xs" style={{ color: "rgba(232,228,220,0.25)" }}>
+                      <span className="text-xs" style={{ color: "var(--text-25)" }}>
                         {new Date(b.created_at).toLocaleDateString()}
                       </span>
                       <span className="text-xs font-semibold" style={{ color: "#F5A800" }}>

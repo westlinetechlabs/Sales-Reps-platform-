@@ -11,6 +11,89 @@
   --color-surface-hover: rgba(255, 255, 255, 0.06);
 }
 
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS — dark (default) / light
+───────────────────────────────────────────── */
+:root {
+  /* Text scale */
+  --text:     #e8e4dc;
+  --text-70:  rgba(232,228,220,0.70);
+  --text-60:  rgba(232,228,220,0.60);
+  --text-50:  rgba(232,228,220,0.50);
+  --text-40:  rgba(232,228,220,0.40);
+  --text-35:  rgba(232,228,220,0.35);
+  --text-30:  rgba(232,228,220,0.30);
+  --text-25:  rgba(232,228,220,0.25);
+  --text-20:  rgba(232,228,220,0.20);
+
+  /* Surfaces (glass layers) */
+  --surface-2: rgba(255,255,255,0.02);
+  --surface-4: rgba(255,255,255,0.04);
+  --surface-6: rgba(255,255,255,0.06);
+  --surface-7: rgba(255,255,255,0.07);
+
+  /* Borders */
+  --border-6:  rgba(255,255,255,0.06);
+  --border-8:  rgba(255,255,255,0.08);
+  --border-10: rgba(255,255,255,0.10);
+  --border-15: rgba(255,255,255,0.15);
+  --border-20: rgba(255,255,255,0.20);
+
+  /* Page backgrounds */
+  --page-bg:      #0a0700;
+  --sidebar-bg:   #0d0a02;
+  --card-form-bg: #111008;
+  --input-opt-bg: #1a1a0f;
+
+  /* Gold contextual */
+  --gold-06: rgba(245,168,0,0.06);
+  --gold-10: rgba(245,168,0,0.10);
+  --gold-15: rgba(245,168,0,0.15);
+  --gold-20: rgba(245,168,0,0.20);
+  --gold-25: rgba(245,168,0,0.25);
+  --gold-50: rgba(245,168,0,0.50);
+  --gold-60: rgba(245,168,0,0.60);
+}
+
+/* ── Light theme overrides ── */
+html.light {
+  color-scheme: light;
+
+  --text:     #1c1a12;
+  --text-70:  rgba(28,26,18,0.72);
+  --text-60:  rgba(28,26,18,0.65);
+  --text-50:  rgba(28,26,18,0.56);
+  --text-40:  rgba(28,26,18,0.48);
+  --text-35:  rgba(28,26,18,0.43);
+  --text-30:  rgba(28,26,18,0.37);
+  --text-25:  rgba(28,26,18,0.31);
+  --text-20:  rgba(28,26,18,0.25);
+
+  --surface-2: rgba(255,255,255,0.55);
+  --surface-4: rgba(255,255,255,0.72);
+  --surface-6: rgba(255,255,255,0.88);
+  --surface-7: rgba(255,255,255,0.95);
+
+  --border-6:  rgba(0,0,0,0.06);
+  --border-8:  rgba(0,0,0,0.08);
+  --border-10: rgba(0,0,0,0.10);
+  --border-15: rgba(0,0,0,0.13);
+  --border-20: rgba(0,0,0,0.17);
+
+  --page-bg:      #f2ede3;
+  --sidebar-bg:   #e8e3d8;
+  --card-form-bg: #ede8de;
+  --input-opt-bg: #f2ede3;
+
+  --gold-06: rgba(160,100,0,0.06);
+  --gold-10: rgba(160,100,0,0.10);
+  --gold-15: rgba(160,100,0,0.14);
+  --gold-20: rgba(160,100,0,0.18);
+  --gold-25: rgba(160,100,0,0.22);
+  --gold-50: rgba(160,100,0,0.50);
+  --gold-60: rgba(160,100,0,0.62);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -20,23 +103,32 @@ html {
 }
 
 body {
-  background: var(--color-bg-dark);
-  color: #e8e4dc;
+  background: var(--page-bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
-/* Glassmorphism card */
+/* ─────────────────────────────────────────────
+   GLASSMORPHISM CARD
+───────────────────────────────────────────── */
 .glass-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-4);
+  border: 1px solid var(--border-8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .glass-card-hover:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(245, 168, 0, 0.15);
+  background: var(--surface-6);
+  border-color: var(--gold-15);
 }
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────── */
 
 /* Gold gradient button */
 .btn-gold {
@@ -53,6 +145,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-gold:hover {
@@ -71,8 +165,8 @@ body {
 /* Ghost/outline button */
 .btn-ghost {
   background: transparent;
-  color: #a8a29e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-50);
+  border: 1px solid var(--border-10);
   border-radius: 99px;
   padding: 10px 24px;
   font-size: 14px;
@@ -83,12 +177,14 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e8e4dc;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--surface-6);
+  color: var(--text);
+  border-color: var(--border-15);
 }
 
 /* Danger button */
@@ -106,26 +202,31 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-danger:hover {
   background: rgba(239, 68, 68, 0.25);
 }
 
-/* Input styling */
+/* ─────────────────────────────────────────────
+   INPUT
+───────────────────────────────────────────── */
 .input-dark {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-4);
+  border: 1px solid var(--border-10);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 14px;
-  color: #e8e4dc;
+  color: var(--text);
   width: 100%;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease,
+              background 0.25s ease, color 0.25s ease;
 }
 
-/* Prevent iOS auto-zoom on input focus (triggered when font-size < 16px) */
+/* Prevent iOS auto-zoom (font-size < 16px triggers zoom) */
 @media screen and (max-width: 768px) {
   input, textarea, select, .input-dark {
     font-size: 16px !important;
@@ -133,7 +234,7 @@ body {
 }
 
 .input-dark::placeholder {
-  color: #57534e;
+  color: var(--text-30);
 }
 
 .input-dark:focus {
@@ -142,51 +243,42 @@ body {
 }
 
 .input-dark option {
-  background: #1a1a0f;
-  color: #e8e4dc;
+  background: var(--input-opt-bg);
+  color: var(--text);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-10);
   border-radius: 3px;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--border-20); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ── Animations ── */
-
+/* ─────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
 
 /* Skeleton shimmer */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  100% { background-position:  200% 0; }
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 75%
+    var(--surface-4) 25%,
+    var(--surface-7) 50%,
+    var(--surface-4) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -194,26 +286,21 @@ body {
 }
 
 /* ── Premium tap / interaction animations ── */
-
-/* Diagonal light sweep (shimmer on tap) */
 @keyframes btn-shimmer {
   from { left: -100%; }
-  to   { left: 220%; }
+  to   { left:  220%; }
 }
 
-/* Gold ring pulse on tap */
 @keyframes gold-ring {
-  0%   { box-shadow: 0 0 0 0px rgba(245,168,0,0.55), 0 4px 20px rgba(245,168,0,0.25); }
-  100% { box-shadow: 0 0 0 10px rgba(245,168,0,0),   0 4px 20px rgba(245,168,0,0); }
+  0%   { box-shadow: 0 0 0  0px rgba(245,168,0,0.55), 0 4px 20px rgba(245,168,0,0.25); }
+  100% { box-shadow: 0 0 0 10px rgba(245,168,0,0),    0 4px 20px rgba(245,168,0,0); }
 }
 
-/* Ghost ring pulse on tap */
 @keyframes ghost-ring {
   0%   { box-shadow: 0 0 0 0px rgba(255,255,255,0.2); }
-  100% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+  100% { box-shadow: 0 0 0 8px rgba(255,255,255,0);   }
 }
 
-/* Spring bounce — scales down then overshoots */
 @keyframes spring-bounce {
   0%   { transform: scale(1); }
   30%  { transform: scale(0.93); }
@@ -222,94 +309,63 @@ body {
   100% { transform: scale(1); }
 }
 
-/* ── btn-gold tap effects ── */
-.btn-gold {
-  position: relative;
-  overflow: hidden;
-}
-
+/* btn-gold tap */
 .btn-gold::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -100%;
-  width: 45%;
-  height: 200%;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    rgba(255, 255, 255, 0.28) 50%,
-    transparent 100%
-  );
+  top: -50%; left: -100%;
+  width: 45%; height: 200%;
+  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.28) 50%, transparent 100%);
   transform: skewX(-20deg);
   pointer-events: none;
 }
-
 .btn-gold:active {
-  animation: spring-bounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
-             gold-ring 0.45s ease-out forwards;
+  animation: spring-bounce 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards,
+             gold-ring      0.45s ease-out forwards;
 }
+.btn-gold:active::before { animation: btn-shimmer 0.42s ease-out forwards; }
 
-.btn-gold:active::before {
-  animation: btn-shimmer 0.42s ease-out forwards;
-}
-
-/* ── btn-ghost tap effects ── */
-.btn-ghost {
-  position: relative;
-  overflow: hidden;
-}
-
+/* btn-ghost tap */
 .btn-ghost::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -100%;
-  width: 45%;
-  height: 200%;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 100%
-  );
+  top: -50%; left: -100%;
+  width: 45%; height: 200%;
+  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.10) 50%, transparent 100%);
   transform: skewX(-20deg);
   pointer-events: none;
 }
-
 .btn-ghost:active {
-  animation: spring-bounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
-             ghost-ring 0.4s ease-out forwards;
+  animation: spring-bounce 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards,
+             ghost-ring     0.40s ease-out forwards;
 }
+.btn-ghost:active::before { animation: btn-shimmer 0.42s ease-out forwards; }
 
-.btn-ghost:active::before {
-  animation: btn-shimmer 0.42s ease-out forwards;
+/* btn-danger tap */
+.btn-danger::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -100%;
+  width: 45%; height: 200%;
+  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.10) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  pointer-events: none;
 }
-
-/* ── btn-danger tap effects ── */
-.btn-danger {
-  position: relative;
-  overflow: hidden;
-}
-
 .btn-danger:active {
-  animation: spring-bounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: spring-bounce 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
 
-/* ── glass-card hover lift + tap ── */
+/* glass-card hover lift */
 .glass-card-hover {
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.22s ease,
-              border-color 0.22s ease;
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.22s ease, border-color 0.22s ease;
   cursor: pointer;
 }
-
 .glass-card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 35px rgba(245, 168, 0, 0.08);
-  border-color: rgba(245, 168, 0, 0.18) !important;
+  box-shadow: 0 12px 35px rgba(245,168,0,0.08);
+  border-color: rgba(245,168,0,0.18) !important;
 }
-
 .glass-card-hover:active {
   transform: translateY(0) scale(0.985);
   transition-duration: 0.1s;

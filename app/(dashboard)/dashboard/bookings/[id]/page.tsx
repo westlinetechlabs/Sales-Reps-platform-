@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Copy, Download, Phone, Mail, MapPin,
   Loader2, CheckCircle2, MessageCircle, Send,
-  Pencil, Trash2, RotateCcw, X, Check, AlertTriangle,
+  Pencil, Trash2, RotateCcw, X, Check, AlertTriangle, Share2,
 } from "lucide-react";
 import { STATUS_CONFIG, SERVICE_TYPES } from "@/types";
 import type { Booking, BookingStatus } from "@/types";
@@ -194,8 +194,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     toast.success("Copied to clipboard!");
   }
 
-  function downloadPDF() {
-    if (!booking) return;
+  function generatePDFBlob(): Blob {
+    if (!booking) throw new Error("No booking");
     const details = booking.service_details as { description?: string };
     const doc = new jsPDF();
     const w = doc.internal.pageSize.getWidth();
@@ -255,6 +255,11 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     row("Status", STATUS_CONFIG[booking.status as BookingStatus].label);
     y += 4;
 
+    section("FINANCIALS");
+    row("Project Value", `₵${booking.project_value.toLocaleString()}`);
+    row("Commission", `₵${booking.commission_earned}`);
+    y += 4;
+
     if (booking.notes) {
       section("NOTES");
       doc.setFont("helvetica", "normal");
@@ -278,8 +283,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       pageH - 14
     );
 
-    // Reliable download via blob + anchor
-    const blob = doc.output("blob");
+    return doc.output("blob");
+  }
+
+  function downloadPDF() {
+    if (!booking) return;
+    const blob = generatePDFBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -289,6 +298,29 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success("PDF downloaded!");
+  }
+
+  async function sharePDF() {
+    if (!booking) return;
+    const blob = generatePDFBlob();
+    const fileName = `booking-${booking.client_name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+    const file = new File([blob], fileName, { type: "application/pdf" });
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: `Booking – ${booking.client_name}`,
+          text: `${booking.service_type} booking for ${booking.client_name}`,
+          files: [file],
+        });
+      } catch {
+        // User cancelled share sheet — do nothing
+      }
+    } else {
+      // Fallback to download if Web Share not supported
+      downloadPDF();
+      toast("Sharing not supported on this device — PDF downloaded.");
+    }
   }
 
   if (loading || !booking) {
@@ -308,7 +340,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       <button
         onClick={() => router.back()}
         className="inline-flex items-center gap-2 text-sm mb-6 pt-12 lg:pt-0"
-        style={{ color: "rgba(232,228,220,0.4)" }}
+        style={{ color: "var(--text-40)" }}
       >
         <ArrowLeft size={16} /> Back
       </button>
@@ -368,8 +400,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             />
           ) : (
             <h1
-              className="text-2xl font-bold text-white"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              className="text-2xl font-bold"
+              style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}
             >
               {booking.client_name}
             </h1>
@@ -377,12 +409,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-2 mt-2">
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border"
-              style={{ borderColor: "rgba(255,255,255,0.1)" }}
+              style={{ borderColor: "var(--border-10)" }}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
               <span className={status.color}>{status.label}</span>
             </span>
-            <span className="text-xs" style={{ color: "rgba(232,228,220,0.3)" }}>
+            <span className="text-xs" style={{ color: "var(--text-30)" }}>
               {new Date(booking.created_at).toLocaleDateString()}
             </span>
           </div>
@@ -395,6 +427,9 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               </button>
               <button onClick={downloadPDF} className="btn-ghost text-xs">
                 <Download size={14} /> PDF
+              </button>
+              <button onClick={sharePDF} className="btn-ghost text-xs">
+                <Share2 size={14} /> Share
               </button>
               <button onClick={enterEditMode} className="btn-gold text-xs">
                 <Pencil size={14} /> Edit
@@ -418,13 +453,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       <div className="space-y-4">
         {/* Client info */}
         <div className="glass-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "var(--gold-50)" }}>
             Client Information
           </p>
           {editMode && editForm ? (
             <div className="space-y-3">
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Phone</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Phone</label>
                 <input
                   value={editForm.client_phone}
                   onChange={(e) => setEditForm((f) => f ? { ...f, client_phone: e.target.value } : f)}
@@ -432,7 +467,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Email</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Email</label>
                 <input
                   value={editForm.client_email}
                   onChange={(e) => setEditForm((f) => f ? { ...f, client_email: e.target.value } : f)}
@@ -440,7 +475,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Location</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Location</label>
                 <input
                   value={editForm.client_location}
                   onChange={(e) => setEditForm((f) => f ? { ...f, client_location: e.target.value } : f)}
@@ -451,10 +486,11 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Phone size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
+                <Phone size={15} style={{ color: "var(--text-30)" }} />
                 <a
                   href={`tel:${booking.client_phone}`}
-                  className="text-sm text-white hover:underline"
+                  className="text-sm hover:underline"
+                  style={{ color: "var(--text)" }}
                 >
                   {booking.client_phone}
                 </a>
@@ -470,16 +506,20 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               </div>
               {booking.client_email && (
                 <div className="flex items-center gap-3">
-                  <Mail size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
-                  <a href={`mailto:${booking.client_email}`} className="text-sm text-white hover:underline">
+                  <Mail size={15} style={{ color: "var(--text-30)" }} />
+                  <a
+                    href={`mailto:${booking.client_email}`}
+                    className="text-sm hover:underline"
+                    style={{ color: "var(--text)" }}
+                  >
                     {booking.client_email}
                   </a>
                 </div>
               )}
               {booking.client_location && (
                 <div className="flex items-center gap-3">
-                  <MapPin size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
-                  <span className="text-sm text-white">{booking.client_location}</span>
+                  <MapPin size={15} style={{ color: "var(--text-30)" }} />
+                  <span className="text-sm" style={{ color: "var(--text)" }}>{booking.client_location}</span>
                 </div>
               )}
             </div>
@@ -488,13 +528,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
         {/* Service */}
         <div className="glass-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "var(--gold-50)" }}>
             Service
           </p>
           {editMode && editForm ? (
             <div className="space-y-3">
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Service Type</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Service Type</label>
                 <select
                   value={editForm.service_type}
                   onChange={(e) => setEditForm((f) => f ? { ...f, service_type: e.target.value } : f)}
@@ -504,7 +544,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 </select>
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Details</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Details</label>
                 <textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm((f) => f ? { ...f, description: e.target.value } : f)}
@@ -513,7 +553,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Status</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Status</label>
                 <select
                   value={editForm.status}
                   onChange={(e) => setEditForm((f) => f ? { ...f, status: e.target.value as BookingStatus } : f)}
@@ -530,13 +570,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               <div className="flex items-center gap-3 mb-3">
                 <span
                   className="px-3 py-1 rounded-full text-xs font-medium"
-                  style={{ background: "rgba(245,168,0,0.1)", color: "#F5A800", border: "1px solid rgba(245,168,0,0.15)" }}
+                  style={{ background: "var(--gold-10)", color: "#F5A800", border: "1px solid var(--gold-15)" }}
                 >
                   {booking.service_type}
                 </span>
               </div>
               {details?.description && (
-                <p className="text-sm leading-relaxed" style={{ color: "rgba(232,228,220,0.6)" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-60)" }}>
                   {details.description}
                 </p>
               )}
@@ -546,13 +586,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
         {/* Financials */}
         <div className="glass-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "var(--gold-50)" }}>
             Financials
           </p>
           {editMode && editForm ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Project Value (₵)</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Project Value (₵)</label>
                 <input
                   type="number"
                   value={editForm.project_value}
@@ -561,7 +601,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 />
               </div>
               <div>
-                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Commission (₵)</label>
+                <label className="text-xs mb-1 block" style={{ color: "var(--text-40)" }}>Commission (₵)</label>
                 <input
                   type="number"
                   value={editForm.commission_earned}
@@ -573,16 +613,16 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           ) : (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>Project Value</p>
+                <p className="text-xs" style={{ color: "var(--text-35)" }}>Project Value</p>
                 <p
-                  className="text-xl font-bold text-white mt-1"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                  className="text-xl font-bold mt-1"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}
                 >
                   ₵{booking.project_value.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>
+                <p className="text-xs" style={{ color: "var(--text-35)" }}>
                   {isAdmin ? "Commission" : "Your Commission"}
                 </p>
                 <p
@@ -598,7 +638,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
         {/* Notes */}
         <div className="glass-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "var(--gold-50)" }}>
             Notes
           </p>
           {editMode && editForm ? (
@@ -614,12 +654,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               {booking.notes ? (
                 <div
                   className="text-sm leading-relaxed whitespace-pre-wrap mb-4"
-                  style={{ color: "rgba(232,228,220,0.6)" }}
+                  style={{ color: "var(--text-60)" }}
                 >
                   {booking.notes}
                 </div>
               ) : (
-                <p className="text-sm mb-4" style={{ color: "rgba(232,228,220,0.25)" }}>
+                <p className="text-sm mb-4" style={{ color: "var(--text-25)" }}>
                   No notes yet
                 </p>
               )}

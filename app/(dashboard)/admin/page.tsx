@@ -229,7 +229,7 @@ export default function AdminPage() {
   if (!rep || (rep.role !== "manager" && rep.role !== "owner")) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>Unauthorized</p>
+        <p className="text-sm" style={{ color: "var(--text-40)" }}>Unauthorized</p>
       </div>
     );
   }
@@ -252,7 +252,7 @@ export default function AdminPage() {
           >
             Admin Panel
           </h1>
-          <p className="text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>
+          <p className="text-sm" style={{ color: "var(--text-40)" }}>
             Manage your team, bookings, and commissions
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function AdminPage() {
           <div key={s.label} className="glass-card p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs" style={{ color: "rgba(232,228,220,0.4)" }}>{s.label}</p>
+                <p className="text-xs" style={{ color: "var(--text-40)" }}>{s.label}</p>
                 <p
                   className="text-lg font-bold text-white mt-1"
                   style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -295,9 +295,9 @@ export default function AdminPage() {
             transition={{ type: "spring", stiffness: 500, damping: 22 }}
             className="px-4 py-2 rounded-full text-sm font-medium capitalize relative overflow-hidden"
             style={{
-              background: tab === t ? "linear-gradient(135deg, #F5A800, #D4920A)" : "rgba(255,255,255,0.04)",
-              color: tab === t ? "#000" : "rgba(232,228,220,0.5)",
-              border: `1px solid ${tab === t ? "transparent" : "rgba(255,255,255,0.08)"}`,
+              background: tab === t ? "linear-gradient(135deg, #F5A800, #D4920A)" : "var(--surface-4)",
+              color: tab === t ? "#000" : "var(--text-50)",
+              border: `1px solid ${tab === t ? "transparent" : "var(--border-8)"}`,
             }}
           >
             {t === "team" ? `Team (${reps.length})` : t === "withdrawals" && pendingWithdrawals > 0 ? `Withdrawals (${pendingWithdrawals})` : t}
@@ -343,7 +343,7 @@ export default function AdminPage() {
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(232,228,220,0.3)" }} />
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--text-30)" }} />
               <input
                 placeholder="Search bookings..."
                 value={search}
@@ -378,7 +378,7 @@ export default function AdminPage() {
 
           {filtered.length === 0 ? (
             <div className="glass-card py-16 text-center">
-              <p className="text-sm" style={{ color: "rgba(232,228,220,0.3)" }}>No bookings found</p>
+              <p className="text-sm" style={{ color: "var(--text-30)" }}>No bookings found</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -402,13 +402,13 @@ export default function AdminPage() {
                               <Link
                                 href={`/dashboard/bookings/${b.id}`}
                                 className="shrink-0"
-                                style={{ color: "rgba(232,228,220,0.2)" }}
+                                style={{ color: "var(--text-20)" }}
                               >
                                 <ChevronRight size={14} />
                               </Link>
                             </div>
-                            <p className="text-xs mt-0.5" style={{ color: "rgba(232,228,220,0.35)" }}>
-                              {b.service_type} · by <span style={{ color: "rgba(245,168,0,0.6)" }}>{repName}</span>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-35)" }}>
+                              {b.service_type} · by <span style={{ color: "var(--gold-60)" }}>{repName}</span>
                             </p>
                           </div>
                           <div className="relative shrink-0">
@@ -417,8 +417,8 @@ export default function AdminPage() {
                               onChange={(e) => updateStatus(b.id, e.target.value as BookingStatus)}
                               className="appearance-none cursor-pointer pr-7"
                               style={{
-                                background: "rgba(255,255,255,0.04)",
-                                border: "1px solid rgba(255,255,255,0.1)",
+                                background: "var(--surface-4)",
+                                border: "1px solid var(--border-10)",
                                 borderRadius: "12px",
                                 padding: "8px 32px 8px 12px",
                                 fontSize: "13px",
@@ -823,6 +823,16 @@ export default function AdminPage() {
                       >
                         {r.role}
                       </span>
+
+                      {/* View rep profile */}
+                      <Link
+                        href={`/admin/reps/${r.id}`}
+                        className="p-2 rounded-xl transition-colors"
+                        style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,228,220,0.5)" }}
+                        title="View rep profile"
+                      >
+                        <ChevronRight size={15} />
+                      </Link>
 
                       {!isMe && r.role !== "owner" && (
                         <>
