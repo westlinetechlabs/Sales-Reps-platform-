@@ -7,7 +7,7 @@ import {
   Shield, Search, Loader2, Users, DollarSign,
   ChevronDown, Phone, ChevronRight, UserCheck, UserX,
   Trash2, Copy, CheckCheck, Wallet, Clock, CheckCircle,
-  XCircle,
+  XCircle, Pencil, RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import type { Booking, BookingStatus, SalesRep, WithdrawalRequest, WithdrawalStatus } from "@/types";
@@ -48,7 +48,7 @@ export default function AdminPage() {
       .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (!profile || profile.role !== "admin") {
+    if (!profile || (profile.role !== "manager" && profile.role !== "owner")) {
       toast.error("Unauthorized");
       return;
     }
@@ -60,6 +60,7 @@ export default function AdminPage() {
       supabase
         .from("sales_bookings")
         .select("*, sales_reps(id, full_name, email)")
+        .eq("is_deleted", false)
         .order("created_at", { ascending: false }),
       supabase
         .from("withdrawal_requests")
@@ -145,7 +146,18 @@ export default function AdminPage() {
     }
   }
 
-  async function changeRepRole(repId: string, newRole: "rep" | "admin") {
+  async function changeRepRole(repId: string, newRole: "rep" | "manager") {
+    if (!rep) return;
+    // Only owners can change roles
+    if (rep.role !== "owner") {
+      toast.error("Only the owner can change roles");
+      return;
+    }
+    const target = reps.find((r) => r.id === repId);
+    if (target?.role === "owner") {
+      toast.error("Owner role cannot be changed");
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase
       .from("sales_reps")
@@ -214,13 +226,15 @@ export default function AdminPage() {
     );
   }
 
-  if (!rep || rep.role !== "admin") {
+  if (!rep || (rep.role !== "manager" && rep.role !== "owner")) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>Unauthorized</p>
       </div>
     );
   }
+
+  const isOwner = rep.role === "owner";
 
   const totalRevenue = bookings.reduce((s, b) => s + b.project_value, 0);
   const totalCommissions = bookings.reduce((s, b) => s + b.commission_earned, 0);
@@ -247,7 +261,7 @@ export default function AdminPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Total Reps", value: reps.filter((r) => r.role === "rep").length, icon: <Users size={18} />, color: "#3b82f6" },
+          { label: "Total Reps", value: reps.filter((r) => r.role === "rep" || r.role === "manager").length, icon: <Users size={18} />, color: "#3b82f6" },
           { label: "All Bookings", value: bookings.length, icon: <Shield size={18} />, color: "#F5A800" },
           { label: "Total Revenue", value: `₵${totalRevenue.toLocaleString()}`, icon: <DollarSign size={18} />, color: "#22c55e" },
           { label: "Pending Payouts", value: pendingWithdrawals, icon: <Wallet size={18} />, color: "#a855f7" },
@@ -345,7 +359,7 @@ export default function AdminPage() {
             >
               <option value="all">All Reps</option>
               {reps
-                .filter((r) => r.role === "rep")
+                .filter((r) => r.role === "rep" || r.role === "manager")
                 .map((r) => (
                   <option key={r.id} value={r.id}>{r.full_name}</option>
                 ))}
@@ -437,6 +451,16 @@ export default function AdminPage() {
                             <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                             {status.label}
                           </span>
+                          {b.is_restored && (
+                            <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#a855f7" }}>
+                              <RotateCcw size={10} /> Restored
+                            </span>
+                          )}
+                          {b.is_edited && !b.is_restored && (
+                            <span className="inline-flex items-center gap-1 text-xs" style={{ color: "rgba(59,130,246,0.7)" }}>
+                              <Pencil size={10} /> {b.edited_by_admin ? "Edited by admin" : "Edited"}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -779,16 +803,24 @@ export default function AdminPage() {
 
                       {/* Role badge */}
                       <span
-                        className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
                         style={{
-                          background: r.role === "admin" ? "rgba(168,85,247,0.1)" : "rgba(59,130,246,0.1)",
-                          color: r.role === "admin" ? "#a855f7" : "#3b82f6",
+                          background: r.role === "owner"
+                            ? "rgba(245,168,0,0.12)"
+                            : r.role === "manager"
+                            ? "rgba(168,85,247,0.1)"
+                            : "rgba(59,130,246,0.1)",
+                          color: r.role === "owner"
+                            ? "#F5A800"
+                            : r.role === "manager"
+                            ? "#a855f7"
+                            : "#3b82f6",
                         }}
                       >
                         {r.role}
                       </span>
 
-                      {!isMe && (
+                      {!isMe && r.role !== "owner" && (
                         <>
                           {/* Toggle active */}
                           <button
@@ -800,15 +832,17 @@ export default function AdminPage() {
                             {r.status === "active" ? <UserX size={15} /> : <UserCheck size={15} />}
                           </button>
 
-                          {/* Toggle role */}
-                          <button
-                            onClick={() => changeRepRole(r.id, r.role === "rep" ? "admin" : "rep")}
-                            title={r.role === "rep" ? "Promote to admin" : "Demote to rep"}
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-                            style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,228,220,0.5)" }}
-                          >
-                            {r.role === "rep" ? "Make Admin" : "Make Rep"}
-                          </button>
+                          {/* Toggle role — only owner can change roles */}
+                          {isOwner && (
+                            <button
+                              onClick={() => changeRepRole(r.id, r.role === "rep" ? "manager" : "rep")}
+                              title={r.role === "rep" ? "Promote to Manager" : "Demote to Rep"}
+                              className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                              style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,228,220,0.5)" }}
+                            >
+                              {r.role === "rep" ? "Make Manager" : "Make Rep"}
+                            </button>
+                          )}
 
                           {/* Remove */}
                           <button

@@ -3,44 +3,172 @@
 import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   ArrowLeft, Copy, Download, Phone, Mail, MapPin,
   Loader2, CheckCircle2, MessageCircle, Send,
+  Pencil, Trash2, RotateCcw, X, Check, AlertTriangle,
 } from "lucide-react";
-import { STATUS_CONFIG } from "@/types";
+import { STATUS_CONFIG, SERVICE_TYPES } from "@/types";
 import type { Booking, BookingStatus } from "@/types";
 import toast from "react-hot-toast";
 import { jsPDF } from "jspdf";
+
+interface EditForm {
+  client_name: string;
+  client_phone: string;
+  client_email: string;
+  client_location: string;
+  service_type: string;
+  description: string;
+  project_value: string;
+  commission_earned: string;
+  status: BookingStatus;
+  notes: string;
+}
 
 export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [viewerRole, setViewerRole] = useState<"rep" | "manager" | "owner">("rep");
   const [loading, setLoading] = useState(true);
-  const [newNote, setNewNote] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
+  const [newNote, setNewNote] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteNote, setDeleteNote] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    async function fetch() {
+    async function fetchBooking() {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("sales_bookings")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const [{ data: profile }, { data, error }] = await Promise.all([
+        supabase.from("sales_reps").select("role").eq("user_id", session.user.id).maybeSingle(),
+        supabase.from("sales_bookings").select("*").eq("id", id).maybeSingle(),
+      ]);
+
+      if (profile?.role) setViewerRole(profile.role as "rep" | "manager" | "owner");
 
       if (error || !data) {
         toast.error("Booking not found");
-        router.push("/dashboard");
+        router.back();
         return;
       }
 
       setBooking(data);
       setLoading(false);
     }
-    fetch();
+    fetchBooking();
   }, [id, router]);
+
+  const isAdmin = viewerRole === "manager" || viewerRole === "owner";
+
+  function enterEditMode() {
+    if (!booking) return;
+    const details = booking.service_details as { description?: string };
+    setEditForm({
+      client_name: booking.client_name,
+      client_phone: booking.client_phone,
+      client_email: booking.client_email || "",
+      client_location: booking.client_location || "",
+      service_type: booking.service_type,
+      description: details?.description || "",
+      project_value: String(booking.project_value),
+      commission_earned: String(booking.commission_earned),
+      status: booking.status,
+      notes: booking.notes || "",
+    });
+    setEditMode(true);
+  }
+
+  async function saveEdits() {
+    if (!booking || !editForm) return;
+    setSaving(true);
+    const supabase = createClient();
+    const updates = {
+      client_name: editForm.client_name.trim(),
+      client_phone: editForm.client_phone.trim(),
+      client_email: editForm.client_email.trim() || null,
+      client_location: editForm.client_location.trim() || null,
+      service_type: editForm.service_type,
+      service_details: { description: editForm.description.trim() },
+      project_value: parseFloat(editForm.project_value) || 0,
+      commission_earned: parseFloat(editForm.commission_earned) || 0,
+      status: editForm.status,
+      notes: editForm.notes.trim() || null,
+      is_edited: true,
+      edited_by_admin: isAdmin,
+      edited_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from("sales_bookings")
+      .update(updates)
+      .eq("id", booking.id);
+
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save changes");
+    } else {
+      setBooking({
+        ...booking,
+        ...updates,
+        service_details: updates.service_details,
+      });
+      setEditMode(false);
+      toast.success("Changes saved!");
+    }
+  }
+
+  async function confirmDelete() {
+    if (!booking || !deleteNote.trim()) return;
+    setDeleting(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("sales_bookings")
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        delete_note: deleteNote.trim(),
+      })
+      .eq("id", booking.id);
+
+    setDeleting(false);
+    if (error) {
+      toast.error("Failed to delete booking");
+    } else {
+      toast.success("Booking deleted");
+      router.push(isAdmin ? "/admin" : "/dashboard");
+    }
+  }
+
+  async function addNote() {
+    if (!booking || !newNote.trim()) return;
+    setSaving(true);
+    const supabase = createClient();
+    const updatedNotes = booking.notes
+      ? `${booking.notes}\n\n[${new Date().toLocaleDateString()}] ${newNote}`
+      : `[${new Date().toLocaleDateString()}] ${newNote}`;
+
+    const { error } = await supabase
+      .from("sales_bookings")
+      .update({ notes: updatedNotes })
+      .eq("id", booking.id);
+
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save note");
+    } else {
+      setBooking({ ...booking, notes: updatedNotes });
+      setNewNote("");
+      toast.success("Note added!");
+    }
+  }
 
   function copyDetails() {
     if (!booking) return;
@@ -53,7 +181,6 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       ``,
       `SERVICE: ${booking.service_type}`,
       details?.description ? `DETAILS: ${details.description}` : null,
-      `VALUE: ₵${booking.project_value.toLocaleString()}`,
       ``,
       `STATUS: ${STATUS_CONFIG[booking.status as BookingStatus].label}`,
       booking.notes ? `\nNOTES: ${booking.notes}` : null,
@@ -91,7 +218,6 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
     let y = 55;
 
-    // Section helper
     function section(title: string) {
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
@@ -126,11 +252,6 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     section("SERVICE");
     row("Type", booking.service_type);
     if (details?.description) row("Details", details.description);
-    y += 4;
-
-    section("FINANCIALS");
-    row("Value", `₵${booking.project_value.toLocaleString()}`);
-    row("Commission", `₵${booking.commission_earned}`);
     row("Status", STATUS_CONFIG[booking.status as BookingStatus].label);
     y += 4;
 
@@ -157,31 +278,17 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       pageH - 14
     );
 
-    doc.save(`booking-${booking.client_name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+    // Reliable download via blob + anchor
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `booking-${booking.client_name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     toast.success("PDF downloaded!");
-  }
-
-  async function addNote() {
-    if (!booking || !newNote.trim()) return;
-    setSaving(true);
-    const supabase = createClient();
-    const updatedNotes = booking.notes
-      ? `${booking.notes}\n\n[${new Date().toLocaleDateString()}] ${newNote}`
-      : `[${new Date().toLocaleDateString()}] ${newNote}`;
-
-    const { error } = await supabase
-      .from("sales_bookings")
-      .update({ notes: updatedNotes })
-      .eq("id", booking.id);
-
-    setSaving(false);
-    if (error) {
-      toast.error("Failed to save note");
-    } else {
-      setBooking({ ...booking, notes: updatedNotes });
-      setNewNote("");
-      toast.success("Note added!");
-    }
   }
 
   if (loading || !booking) {
@@ -198,16 +305,43 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto animate-fade-in">
-      <Link
-        href="/dashboard"
+      <button
+        onClick={() => router.back()}
         className="inline-flex items-center gap-2 text-sm mb-6 pt-12 lg:pt-0"
         style={{ color: "rgba(232,228,220,0.4)" }}
       >
-        <ArrowLeft size={16} /> Back to Dashboard
-      </Link>
+        <ArrowLeft size={16} /> Back
+      </button>
 
-      {/* Completed banner */}
-      {booking.status === "completed" && (
+      {/* Restored banner */}
+      {booking.is_restored && (
+        <div
+          className="flex items-center gap-3 p-3 rounded-xl mb-4"
+          style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}
+        >
+          <RotateCcw size={14} style={{ color: "#a855f7" }} />
+          <p className="text-xs font-medium" style={{ color: "#a855f7" }}>
+            Restored{booking.restored_at ? ` · ${new Date(booking.restored_at).toLocaleDateString()}` : ""}
+          </p>
+        </div>
+      )}
+
+      {/* Edited banner */}
+      {booking.is_edited && !booking.is_restored && (
+        <div
+          className="flex items-center gap-3 p-3 rounded-xl mb-4"
+          style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.12)" }}
+        >
+          <Pencil size={13} style={{ color: "#3b82f6" }} />
+          <p className="text-xs" style={{ color: "rgba(59,130,246,0.8)" }}>
+            {booking.edited_by_admin ? "Edited by admin" : "Edited"}
+            {booking.edited_at ? ` · ${new Date(booking.edited_at).toLocaleDateString()}` : ""}
+          </p>
+        </div>
+      )}
+
+      {/* Completed banner (only if not edited/restored) */}
+      {booking.status === "completed" && !booking.is_edited && !booking.is_restored && (
         <div
           className="flex items-center gap-3 p-4 rounded-xl mb-6"
           style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}
@@ -216,7 +350,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           <div>
             <p className="text-sm font-semibold" style={{ color: "#22c55e" }}>Completed</p>
             <p className="text-xs" style={{ color: "rgba(34,197,94,0.6)" }}>
-              Completed on {new Date(booking.updated_at).toLocaleDateString()}
+              {new Date(booking.updated_at).toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -224,13 +358,22 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-        <div>
-          <h1
-            className="text-2xl font-bold text-white"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            {booking.client_name}
-          </h1>
+        <div className="flex-1 min-w-0">
+          {editMode && editForm ? (
+            <input
+              value={editForm.client_name}
+              onChange={(e) => setEditForm((f) => f ? { ...f, client_name: e.target.value } : f)}
+              className="input-dark text-2xl font-bold w-full"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            />
+          ) : (
+            <h1
+              className="text-2xl font-bold text-white"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              {booking.client_name}
+            </h1>
+          )}
           <div className="flex items-center gap-2 mt-2">
             <span
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border"
@@ -244,13 +387,30 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </span>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={copyDetails} className="btn-ghost text-xs">
-            <Copy size={14} /> Copy Details
-          </button>
-          <button onClick={downloadPDF} className="btn-gold text-xs">
-            <Download size={14} /> Download PDF
-          </button>
+        <div className="flex gap-2 flex-wrap shrink-0">
+          {!editMode ? (
+            <>
+              <button onClick={copyDetails} className="btn-ghost text-xs">
+                <Copy size={14} /> Copy
+              </button>
+              <button onClick={downloadPDF} className="btn-ghost text-xs">
+                <Download size={14} /> PDF
+              </button>
+              <button onClick={enterEditMode} className="btn-gold text-xs">
+                <Pencil size={14} /> Edit
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setEditMode(false)} className="btn-ghost text-xs">
+                <X size={14} /> Cancel
+              </button>
+              <button onClick={saveEdits} disabled={saving} className="btn-gold text-xs">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                Save Changes
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -261,59 +421,126 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
             Client Information
           </p>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Phone size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
-              <a
-                href={`tel:${booking.client_phone}`}
-                className="text-sm text-white hover:underline"
-              >
-                {booking.client_phone}
-              </a>
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                style={{ background: "rgba(37,211,102,0.15)", color: "#25d366" }}
-              >
-                <MessageCircle size={11} /> WhatsApp
-              </a>
+          {editMode && editForm ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Phone</label>
+                <input
+                  value={editForm.client_phone}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, client_phone: e.target.value } : f)}
+                  className="input-dark"
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Email</label>
+                <input
+                  value={editForm.client_email}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, client_email: e.target.value } : f)}
+                  className="input-dark"
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Location</label>
+                <input
+                  value={editForm.client_location}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, client_location: e.target.value } : f)}
+                  className="input-dark"
+                />
+              </div>
             </div>
-            {booking.client_email && (
+          ) : (
+            <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Mail size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
-                <a href={`mailto:${booking.client_email}`} className="text-sm text-white hover:underline">
-                  {booking.client_email}
+                <Phone size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
+                <a
+                  href={`tel:${booking.client_phone}`}
+                  className="text-sm text-white hover:underline"
+                >
+                  {booking.client_phone}
+                </a>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={{ background: "rgba(37,211,102,0.15)", color: "#25d366" }}
+                >
+                  <MessageCircle size={11} /> WhatsApp
                 </a>
               </div>
-            )}
-            {booking.client_location && (
-              <div className="flex items-center gap-3">
-                <MapPin size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
-                <span className="text-sm text-white">{booking.client_location}</span>
-              </div>
-            )}
-          </div>
+              {booking.client_email && (
+                <div className="flex items-center gap-3">
+                  <Mail size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
+                  <a href={`mailto:${booking.client_email}`} className="text-sm text-white hover:underline">
+                    {booking.client_email}
+                  </a>
+                </div>
+              )}
+              {booking.client_location && (
+                <div className="flex items-center gap-3">
+                  <MapPin size={15} style={{ color: "rgba(232,228,220,0.3)" }} />
+                  <span className="text-sm text-white">{booking.client_location}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Service details */}
+        {/* Service */}
         <div className="glass-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
             Service
           </p>
-          <div className="flex items-center gap-3 mb-3">
-            <span
-              className="px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: "rgba(245,168,0,0.1)", color: "#F5A800", border: "1px solid rgba(245,168,0,0.15)" }}
-            >
-              {booking.service_type}
-            </span>
-          </div>
-          {details?.description && (
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(232,228,220,0.6)" }}>
-              {details.description}
-            </p>
+          {editMode && editForm ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Service Type</label>
+                <select
+                  value={editForm.service_type}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, service_type: e.target.value } : f)}
+                  className="input-dark"
+                >
+                  {SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Details</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, description: e.target.value } : f)}
+                  className="input-dark resize-none"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, status: e.target.value as BookingStatus } : f)}
+                  className="input-dark"
+                >
+                  {(["new", "in_progress", "completed", "cancelled"] as BookingStatus[]).map((s) => (
+                    <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 mb-3">
+                <span
+                  className="px-3 py-1 rounded-full text-xs font-medium"
+                  style={{ background: "rgba(245,168,0,0.1)", color: "#F5A800", border: "1px solid rgba(245,168,0,0.15)" }}
+                >
+                  {booking.service_type}
+                </span>
+              </div>
+              {details?.description && (
+                <p className="text-sm leading-relaxed" style={{ color: "rgba(232,228,220,0.6)" }}>
+                  {details.description}
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -322,26 +549,51 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
             Financials
           </p>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>Project Value</p>
-              <p
-                className="text-xl font-bold text-white mt-1"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-              >
-                ₵{booking.project_value.toLocaleString()}
-              </p>
+          {editMode && editForm ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Project Value (₵)</label>
+                <input
+                  type="number"
+                  value={editForm.project_value}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, project_value: e.target.value } : f)}
+                  className="input-dark"
+                />
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: "rgba(232,228,220,0.4)" }}>Commission (₵)</label>
+                <input
+                  type="number"
+                  value={editForm.commission_earned}
+                  onChange={(e) => setEditForm((f) => f ? { ...f, commission_earned: e.target.value } : f)}
+                  className="input-dark"
+                />
+              </div>
             </div>
-            <div>
-              <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>Your Commission</p>
-              <p
-                className="text-xl font-bold mt-1"
-                style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#F5A800" }}
-              >
-                ₵{booking.commission_earned}
-              </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>Project Value</p>
+                <p
+                  className="text-xl font-bold text-white mt-1"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                >
+                  ₵{booking.project_value.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "rgba(232,228,220,0.35)" }}>
+                  {isAdmin ? "Commission" : "Your Commission"}
+                </p>
+                <p
+                  className="text-xl font-bold mt-1"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#F5A800" }}
+                >
+                  ₵{booking.commission_earned}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Notes */}
@@ -349,35 +601,100 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(245,168,0,0.5)" }}>
             Notes
           </p>
-          {booking.notes ? (
-            <div
-              className="text-sm leading-relaxed whitespace-pre-wrap mb-4"
-              style={{ color: "rgba(232,228,220,0.6)" }}
-            >
-              {booking.notes}
-            </div>
-          ) : (
-            <p className="text-sm mb-4" style={{ color: "rgba(232,228,220,0.25)" }}>
-              No notes yet
-            </p>
-          )}
-          <div className="flex gap-2">
-            <input
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Add a follow-up note..."
-              className="input-dark flex-1"
-              onKeyDown={(e) => e.key === "Enter" && addNote()}
+          {editMode && editForm ? (
+            <textarea
+              value={editForm.notes}
+              onChange={(e) => setEditForm((f) => f ? { ...f, notes: e.target.value } : f)}
+              className="input-dark resize-none w-full"
+              rows={4}
+              placeholder="Add notes..."
             />
-            <button
-              onClick={addNote}
-              disabled={saving || !newNote.trim()}
-              className="btn-gold px-4"
-            >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
+          ) : (
+            <>
+              {booking.notes ? (
+                <div
+                  className="text-sm leading-relaxed whitespace-pre-wrap mb-4"
+                  style={{ color: "rgba(232,228,220,0.6)" }}
+                >
+                  {booking.notes}
+                </div>
+              ) : (
+                <p className="text-sm mb-4" style={{ color: "rgba(232,228,220,0.25)" }}>
+                  No notes yet
+                </p>
+              )}
+              <div className="flex gap-2">
+                <input
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Add a follow-up note..."
+                  className="input-dark flex-1"
+                  onKeyDown={(e) => e.key === "Enter" && addNote()}
+                />
+                <button
+                  onClick={addNote}
+                  disabled={saving || !newNote.trim()}
+                  className="btn-gold px-4"
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                </button>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Delete / Danger Zone */}
+        {!editMode && (
+          <div className="glass-card p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide mb-4" style={{ color: "rgba(239,68,68,0.5)" }}>
+              Danger Zone
+            </p>
+            {!showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="btn-danger"
+              >
+                <Trash2 size={14} /> Delete Booking
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div
+                  className="flex items-start gap-2 p-3 rounded-xl"
+                  style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}
+                >
+                  <AlertTriangle size={15} style={{ color: "#ef4444" }} className="shrink-0 mt-0.5" />
+                  <p className="text-xs" style={{ color: "rgba(239,68,68,0.8)" }}>
+                    This booking will be moved to the bin. You must provide a reason.
+                  </p>
+                </div>
+                <textarea
+                  value={deleteNote}
+                  onChange={(e) => setDeleteNote(e.target.value)}
+                  placeholder="Reason for deletion (required)..."
+                  className="input-dark resize-none w-full"
+                  rows={3}
+                  style={{ borderColor: deleteNote.trim() ? undefined : "rgba(239,68,68,0.3)" }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteNote(""); }}
+                    className="btn-ghost flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={deleting || !deleteNote.trim()}
+                    className="btn-danger flex-1"
+                  >
+                    {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    Confirm Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

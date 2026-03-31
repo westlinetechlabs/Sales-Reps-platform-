@@ -5,7 +5,7 @@ export interface SalesRep {
   email: string;
   phone?: string | null;
   region?: string | null;
-  role: "rep" | "admin";
+  role: "rep" | "manager" | "owner";
   status: "active" | "inactive";
   avatar_url?: string | null;
   created_at: string;
@@ -26,6 +26,17 @@ export interface Booking {
   status: "new" | "in_progress" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
+  // Edit tracking
+  is_edited?: boolean;
+  edited_by_admin?: boolean;
+  edited_at?: string | null;
+  // Delete tracking
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  delete_note?: string | null;
+  // Restore tracking
+  is_restored?: boolean;
+  restored_at?: string | null;
   // joined
   sales_reps?: SalesRep;
 }

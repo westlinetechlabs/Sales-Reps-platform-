@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import {
   LayoutDashboard, Plus, UserCircle, LogOut,
-  ChevronRight, Shield, Menu, X, Wallet,
+  ChevronRight, Shield, Menu, X, Wallet, Trash2,
 } from "lucide-react";
 import type { SalesRep } from "@/types";
 import { useState } from "react";
@@ -18,13 +18,14 @@ interface SidebarProps {
 export function Sidebar({ rep }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const isAdmin = rep.role === "admin";
+  const isAdmin = rep.role === "manager" || rep.role === "owner";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/bookings/new", label: "New Booking", icon: Plus },
+    { href: "/dashboard/bookings/bin", label: "Bin", icon: Trash2 },
     { href: "/dashboard/withdrawals", label: "Withdrawals", icon: Wallet },
     { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
     ...(isAdmin ? [{ href: "/admin", label: "Admin Panel", icon: Shield }] : []),
@@ -65,8 +66,8 @@ export function Sidebar({ rep }: SidebarProps) {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-white truncate">{rep.full_name}</p>
-            <p className="text-xs" style={{ color: "rgba(245,168,0,0.6)" }}>
-              {isAdmin ? "Owner / Manager" : "Sales Rep"}
+            <p className="text-xs capitalize" style={{ color: "rgba(245,168,0,0.6)" }}>
+              {rep.role === "owner" ? "Owner" : rep.role === "manager" ? "Manager" : "Sales Rep"}
             </p>
           </div>
         </div>

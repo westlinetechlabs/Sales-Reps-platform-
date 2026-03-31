@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 import {
   FileText, TrendingUp, Clock, DollarSign, Plus,
-  Search, Phone, ChevronRight, Loader2, Inbox,
+  Search, Phone, ChevronRight, Loader2, Inbox, Trash2, Pencil, RotateCcw,
 } from "lucide-react";
 import type { Booking, BookingStatus, SalesRep } from "@/types";
 import { STATUS_CONFIG } from "@/types";
@@ -64,6 +64,7 @@ export default function DashboardPage() {
       .from("sales_bookings")
       .select("*")
       .eq("rep_id", profile.id)
+      .eq("is_deleted", false)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -127,9 +128,14 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-1 text-sm" style={{ color: "rgba(232,228,220,0.4)" }}>{today}</p>
         </div>
-        <Link href="/dashboard/bookings/new" className="btn-gold">
-          <Plus size={16} /> New Booking
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/dashboard/bookings/bin" className="btn-ghost text-sm">
+            <Trash2 size={15} /> Bin
+          </Link>
+          <Link href="/dashboard/bookings/new" className="btn-gold">
+            <Plus size={16} /> New Booking
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
@@ -305,6 +311,16 @@ export default function DashboardPage() {
                       <span className="text-xs" style={{ color: "rgba(34,197,94,0.7)" }}>
                         +₵{b.commission_earned.toLocaleString()}
                       </span>
+                      {b.is_restored && (
+                        <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#a855f7" }}>
+                          <RotateCcw size={10} /> Restored
+                        </span>
+                      )}
+                      {b.is_edited && !b.is_restored && (
+                        <span className="inline-flex items-center gap-1 text-xs" style={{ color: "rgba(59,130,246,0.7)" }}>
+                          <Pencil size={10} /> {b.edited_by_admin ? "Edited by admin" : "Edited"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

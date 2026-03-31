@@ -308,7 +308,7 @@ export default function ProfilePage() {
           <div>
             <h2 className="text-lg font-bold text-white">{rep.full_name}</h2>
             <p className="text-sm" style={{ color: "rgba(245,168,0,0.6)" }}>
-              {rep.role === "admin" ? "Owner / Manager" : "Sales Representative"}
+              {rep.role === "owner" ? "Owner" : rep.role === "manager" ? "Manager" : "Sales Representative"}
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}

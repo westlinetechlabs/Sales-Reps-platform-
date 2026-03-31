@@ -50,7 +50,8 @@ export default function WithdrawalsPage() {
       supabase
         .from("sales_bookings")
         .select("commission_earned")
-        .eq("rep_id", profile.id),
+        .eq("rep_id", profile.id)
+        .eq("is_deleted", false),
       supabase
         .from("withdrawal_requests")
         .select("*")
