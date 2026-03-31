@@ -5,22 +5,82 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import {
   LayoutDashboard, Plus, UserCircle, LogOut,
-  ChevronRight, Shield, Menu, X, Wallet, Trash2, BarChart2,
+  ChevronRight, Shield, X, Wallet, Trash2, BarChart2,
+  CheckCircle2, Star, Trophy, Gem, BookOpen,
 } from "lucide-react";
 import type { SalesRep } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SidebarProps {
   rep: SalesRep;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }
 
-export function Sidebar({ rep }: SidebarProps) {
+// ── Verified badge tiers ──────────────────────────────────────
+type BadgeTier = {
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  icon: React.ReactNode;
+};
+
+function getRepBadge(count: number): BadgeTier | null {
+  if (count >= 30) return {
+    label: "Elite",
+    color: "#e2e8f0",
+    bg: "rgba(226,232,240,0.1)",
+    border: "rgba(226,232,240,0.25)",
+    icon: <Gem size={10} />,
+  };
+  if (count >= 15) return {
+    label: "Gold Rep",
+    color: "#F5A800",
+    bg: "rgba(245,168,0,0.1)",
+    border: "rgba(245,168,0,0.25)",
+    icon: <Trophy size={10} />,
+  };
+  if (count >= 5) return {
+    label: "Rising Star",
+    color: "#60a5fa",
+    bg: "rgba(96,165,250,0.1)",
+    border: "rgba(96,165,250,0.22)",
+    icon: <Star size={10} />,
+  };
+  if (count >= 1) return {
+    label: "Verified",
+    color: "#4ade80",
+    bg: "rgba(74,222,128,0.1)",
+    border: "rgba(74,222,128,0.22)",
+    icon: <CheckCircle2 size={10} />,
+  };
+  return null;
+}
+
+export function Sidebar({ rep, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = rep.role === "manager" || rep.role === "owner";
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [bookingCount, setBookingCount] = useState(0);
+
+  // Fetch booking count for badge
+  useEffect(() => {
+    async function fetchCount() {
+      const supabase = createClient();
+      const { count } = await supabase
+        .from("sales_bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("rep_id", rep.id)
+        .eq("is_deleted", false);
+      setBookingCount(count ?? 0);
+    }
+    fetchCount();
+  }, [rep.id]);
+
+  const badge = getRepBadge(bookingCount);
 
   const links = [
     { href: "/dashboard",              label: "Dashboard",   icon: LayoutDashboard },
@@ -78,11 +138,22 @@ export function Sidebar({ rep }: SidebarProps) {
               rep.full_name[0]?.toUpperCase()
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>
               {rep.full_name}
             </p>
-            <p className="text-xs" style={{ color: "var(--gold-60)" }}>{roleLabel}</p>
+            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <p className="text-xs" style={{ color: "var(--gold-60)" }}>{roleLabel}</p>
+              {badge && (
+                <span
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}
+                >
+                  {badge.icon}
+                  {badge.label}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -106,7 +177,7 @@ export function Sidebar({ rep }: SidebarProps) {
             >
               <Link
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={onMobileClose}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={{
                   background: isActive ? "var(--gold-10)" : "transparent",
@@ -137,6 +208,19 @@ export function Sidebar({ rep }: SidebarProps) {
             </motion.div>
           );
         })}
+
+        {/* Manual shortcut */}
+        <div className="pt-2 mt-2" style={{ borderTop: "1px solid var(--border-6)" }}>
+          <Link
+            href="/dashboard/profile"
+            onClick={onMobileClose}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+            style={{ color: "var(--text-40)" }}
+          >
+            <BookOpen size={16} style={{ color: "var(--text-30)" }} />
+            <span>Platform Manual</span>
+          </Link>
+        </div>
       </nav>
 
       {/* Sign out */}
@@ -186,20 +270,7 @@ export function Sidebar({ rep }: SidebarProps) {
 
   return (
     <>
-      {/* ── Mobile hamburger — fixed, opaque background so content scrolls behind ── */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-40 p-2.5 rounded-xl lg:hidden"
-        style={{
-          background: "var(--page-bg)",
-          border: "1px solid var(--border-10)",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
-        }}
-      >
-        <Menu size={20} style={{ color: "#F5A800" }} />
-      </button>
-
-      {/* ── Mobile slide-in drawer ── */}
+      {/* ── Mobile slide-in drawer (renders over the top nav) ── */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -212,7 +283,7 @@ export function Sidebar({ rep }: SidebarProps) {
               transition={{ duration: 0.22 }}
               className="fixed inset-0 z-50 lg:hidden"
               style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-              onClick={() => setMobileOpen(false)}
+              onClick={onMobileClose}
             />
 
             {/* Drawer */}
@@ -230,7 +301,7 @@ export function Sidebar({ rep }: SidebarProps) {
               }}
             >
               <button
-                onClick={() => setMobileOpen(false)}
+                onClick={onMobileClose}
                 className="absolute top-4 right-4 p-1 rounded-lg"
                 style={{ color: "var(--text-40)" }}
               >

@@ -139,7 +139,7 @@ export default function WithdrawalsPage() {
   return (
     <div className="p-4 lg:p-6 max-w-2xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6 pt-12 lg:pt-0">
+      <div className="flex items-center gap-3 mb-6">
         <Wallet size={22} style={{ color: "#F5A800" }} />
         <div>
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

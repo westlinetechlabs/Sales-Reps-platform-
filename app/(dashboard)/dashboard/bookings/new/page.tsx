@@ -188,7 +188,7 @@ export default function NewBookingPage() {
     <div className="p-4 lg:p-6 max-w-2xl mx-auto animate-fade-in">
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-2 text-sm mb-6 pt-12 lg:pt-0"
+        className="inline-flex items-center gap-2 text-sm mb-6"
         style={{ color: "var(--text-40)" }}
       >
         <ArrowLeft size={16} /> Back to Dashboard

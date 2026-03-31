@@ -243,7 +243,7 @@ export default function AdminPage() {
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6 pt-12 lg:pt-0">
+      <div className="flex items-center gap-3 mb-6">
         <Shield size={22} style={{ color: "#F5A800" }} />
         <div>
           <h1

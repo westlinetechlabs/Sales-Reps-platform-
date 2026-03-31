@@ -339,7 +339,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     <div className="p-4 lg:p-6 max-w-3xl mx-auto animate-fade-in">
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-2 text-sm mb-6 pt-12 lg:pt-0"
+        className="inline-flex items-center gap-2 text-sm mb-6"
         style={{ color: "var(--text-40)" }}
       >
         <ArrowLeft size={16} /> Back

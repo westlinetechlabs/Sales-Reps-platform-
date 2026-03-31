@@ -118,11 +118,11 @@ export default function DashboardPage() {
   return (
     <div className="p-4 lg:p-6 max-w-6xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 pt-12 lg:pt-0">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
           <h1
-            className="text-2xl lg:text-3xl font-bold text-white"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            className="text-2xl lg:text-3xl font-bold"
+            style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}
           >
             Welcome back, {rep?.full_name.split(" ")[0]}!
           </h1>
@@ -151,8 +151,8 @@ export default function DashboardPage() {
               <div>
                 <p className="text-xs font-medium" style={{ color: "var(--text-40)" }}>{stat.label}</p>
                 <p
-                  className="text-xl lg:text-2xl font-bold mt-1 text-white"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                  className="text-xl lg:text-2xl font-bold mt-1"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}
                 >
                   {stat.value}
                 </p>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
               onClick={() => handleFilterChange(f.value)}
               whileTap={{ scale: 0.9 }}
               transition={{ type: "spring", stiffness: 500, damping: 20 }}
-              className="px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap relative overflow-hidden"
+              className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap relative overflow-hidden flex-shrink-0"
               style={{
                 background: filter === f.value ? "linear-gradient(135deg, #F5A800, #D4920A)" : "var(--surface-4)",
                 color: filter === f.value ? "#000" : "var(--text-50)",

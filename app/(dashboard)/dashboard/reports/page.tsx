@@ -333,7 +333,7 @@ export default function ReportsPage() {
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6 pt-12 lg:pt-0">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <BarChart2 size={22} style={{ color: "#F5A800" }} />
           <div>

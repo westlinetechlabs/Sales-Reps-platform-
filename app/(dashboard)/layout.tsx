@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import ManualPrompt from "@/components/ManualPrompt";
 import type { SalesRep } from "@/types";
-import { AlertTriangle, RefreshCw, LogOut, Clock } from "lucide-react";
+import { AlertTriangle, RefreshCw, LogOut, Clock, Menu } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 type LoadState = "loading" | "ready" | "pending" | "no_profile" | "no_table" | "error";
@@ -16,12 +17,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [rep, setRep] = useState<SalesRep | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
 
     async function checkAuth() {
-      // 1. Check session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
@@ -29,8 +30,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      // 2. Use maybeSingle() — returns null (no error) when row doesn't exist,
-      //    only errors on real DB problems like missing table.
       const { data: profile, error: profileError } = await supabase
         .from("sales_reps")
         .select("*")
@@ -38,7 +37,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .maybeSingle();
 
       if (profileError) {
-        // Real DB error — table missing (42P01) or something else
         if (profileError.code === "42P01") {
           setLoadState("no_table");
         } else {
@@ -48,20 +46,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      // Profile found — check if approved
       if (profile) {
         if (profile.status === "inactive") {
           setLoadState("pending");
           return;
         }
-        // Sync saved theme preference from DB
         syncFromDB(profile.theme);
         setRep(profile);
         setLoadState("ready");
         return;
       }
 
-      // No profile row yet — auto-create as rep (inactive, pending approval)
       const meta = session.user.user_metadata as { full_name?: string };
       const { data: newProfile, error: insertError } = await supabase
         .from("sales_reps")
@@ -81,7 +76,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
-      // Newly created profile is inactive — must wait for admin approval
       setLoadState("pending");
     }
 
@@ -100,7 +94,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.replace("/login");
   }
 
-  // Loading
   if (loadState === "loading") {
     return (
       <div className="h-screen flex items-center justify-center" style={{ background: "var(--page-bg)" }}>
@@ -115,7 +108,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Pending approval
   if (loadState === "pending") {
     return (
       <div className="h-screen flex items-center justify-center p-6" style={{ background: "var(--page-bg)" }}>
@@ -124,7 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{ background: "var(--gold-10)" }}>
             <Clock size={28} style={{ color: "#F5A800" }} />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>
             Awaiting approval
           </h2>
           <p className="text-sm mb-6" style={{ color: "var(--text-50)" }}>
@@ -139,7 +131,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // SQL migration not run yet
   if (loadState === "no_table") {
     return (
       <div className="h-screen flex items-center justify-center p-6" style={{ background: "var(--page-bg)" }}>
@@ -148,7 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{ background: "var(--gold-10)" }}>
             <AlertTriangle size={28} style={{ color: "#F5A800" }} />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>
             Database setup needed
           </h2>
           <p className="text-sm mb-6" style={{ color: "var(--text-50)" }}>
@@ -174,7 +165,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Profile row missing and auto-create failed
   if (loadState === "no_profile") {
     return (
       <div className="h-screen flex items-center justify-center p-6" style={{ background: "var(--page-bg)" }}>
@@ -183,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{ background: "rgba(239,68,68,0.1)" }}>
             <AlertTriangle size={28} style={{ color: "#ef4444" }} />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>
             Profile setup failed
           </h2>
           <p className="text-sm mb-4" style={{ color: "var(--text-50)" }}>
@@ -213,13 +203,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Generic error
   if (loadState === "error") {
     return (
       <div className="h-screen flex items-center justify-center p-6" style={{ background: "var(--page-bg)" }}>
         <div className="glass-card p-8 max-w-md w-full text-center">
           <AlertTriangle size={32} className="mx-auto mb-4" style={{ color: "#ef4444" }} />
-          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
+          <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>Something went wrong</h2>
           <p className="text-xs mb-4 p-2 rounded-lg"
             style={{ color: "rgba(239,68,68,0.7)", background: "rgba(239,68,68,0.08)" }}>
             {errorMsg}
@@ -241,10 +230,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--page-bg)" }}>
-      <Sidebar rep={rep} />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+      {/* Desktop sidebar + mobile drawer */}
+      <Sidebar rep={rep} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+
+      {/* Content column */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* ── Mobile top nav bar (static, always visible on mobile) ── */}
+        <header
+          className="lg:hidden flex items-center justify-between px-4 shrink-0"
+          style={{
+            height: 56,
+            background: "var(--sidebar-bg)",
+            borderBottom: "1px solid var(--border-6)",
+            position: "sticky",
+            top: 0,
+            zIndex: 40,
+          }}
+        >
+          <img
+            src="https://res.cloudinary.com/djayrwxns/image/upload/v1770785602/westline_logo_bmusvy.png"
+            alt="Westline Techlabs"
+            style={{ height: 32 }}
+          />
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-xl"
+            style={{
+              background: "var(--surface-4)",
+              border: "1px solid var(--border-8)",
+            }}
+          >
+            <Menu size={20} style={{ color: "#F5A800" }} />
+          </button>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+
+      {/* Welcome manual prompt for new reps */}
+      <ManualPrompt rep={rep} />
     </div>
   );
 }
