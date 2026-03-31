@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import SplashScreen from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
   title: "Westline Techlabs — Sales Portal",
@@ -41,6 +42,7 @@ export default function RootLayout({
         style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
       >
         <ThemeProvider>
+          <SplashScreen />
           {children}
           <Toaster
             position="top-right"
