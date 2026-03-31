@@ -125,6 +125,13 @@ body {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Prevent iOS auto-zoom on input focus (triggered when font-size < 16px) */
+@media screen and (max-width: 768px) {
+  input, textarea, select, .input-dark {
+    font-size: 16px !important;
+  }
+}
+
 .input-dark::placeholder {
   color: #57534e;
 }

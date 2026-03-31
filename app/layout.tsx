@@ -18,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full dark">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <link rel="icon" href="https://res.cloudinary.com/djayrwxns/image/upload/v1772931726/westline_favicon_wwht4g.png" type="image/png" />
         <link rel="shortcut icon" href="https://res.cloudinary.com/djayrwxns/image/upload/v1772931726/westline_favicon_wwht4g.png" type="image/png" />
         <link rel="apple-touch-icon" href="https://res.cloudinary.com/djayrwxns/image/upload/v1772931726/westline_favicon_wwht4g.png" />

@@ -415,15 +415,19 @@ export default function AdminPage() {
                             <select
                               value={b.status}
                               onChange={(e) => updateStatus(b.id, e.target.value as BookingStatus)}
-                              className="appearance-none text-xs font-medium px-3 py-1.5 pr-7 rounded-full border cursor-pointer"
+                              className="appearance-none cursor-pointer pr-7"
                               style={{
                                 background: "rgba(255,255,255,0.04)",
-                                borderColor: "rgba(255,255,255,0.1)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                borderRadius: "12px",
+                                padding: "8px 32px 8px 12px",
+                                fontSize: "13px",
                                 color: "#e8e4dc",
+                                outline: "none",
                               }}
                             >
                               {STATUSES.map((s) => (
-                                <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                                <option key={s} value={s} style={{ background: "#1a1a0f" }}>{STATUS_CONFIG[s].label}</option>
                               ))}
                             </select>
                             <ChevronDown
