@@ -9,7 +9,7 @@ import type { SalesRep } from "@/types";
 import { AlertTriangle, RefreshCw, LogOut, Clock, Menu } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
-type LoadState = "loading" | "ready" | "pending" | "no_profile" | "no_table" | "error";
+type LoadState = "loading" | "ready" | "pending" | "blocked" | "no_profile" | "no_table" | "error";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -47,6 +47,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
       if (profile) {
+        // Blocked by admin — cannot re-enter
+        if (profile.is_blocked) {
+          setLoadState("blocked");
+          return;
+        }
         if (profile.status === "inactive") {
           setLoadState("pending");
           return;
@@ -57,15 +62,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
+      // No profile for this user_id yet.
+      // Guard: check if another account with the same email is already blocked
+      // to prevent duplicate approval requests from the same person.
+      const userEmail = session.user.email || "";
+      const { data: existingByEmail } = await supabase
+        .from("sales_reps")
+        .select("id, is_blocked, status")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (existingByEmail?.is_blocked) {
+        setLoadState("blocked");
+        return;
+      }
+
+      // If an inactive (pending) profile already exists for this email on a
+      // different auth account, show pending instead of creating a duplicate.
+      if (existingByEmail && existingByEmail.status === "inactive") {
+        setLoadState("pending");
+        return;
+      }
+
       const meta = session.user.user_metadata as { full_name?: string };
       const { data: newProfile, error: insertError } = await supabase
         .from("sales_reps")
         .insert({
           user_id: session.user.id,
-          full_name: meta?.full_name || session.user.email?.split("@")[0] || "User",
-          email: session.user.email || "",
+          full_name: meta?.full_name || userEmail.split("@")[0] || "User",
+          email: userEmail,
           role: "rep",
           status: "inactive",
+          is_blocked: false,
         })
         .select()
         .single();
@@ -122,6 +150,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-sm mb-6" style={{ color: "var(--text-50)" }}>
             Your account is pending review by the admin. You&apos;ll have full access once approved.
             Contact your manager if you need urgent access.
+          </p>
+          <button onClick={handleSignOut} className="btn-ghost w-full">
+            <LogOut size={14} /> Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadState === "blocked") {
+    return (
+      <div className="h-screen flex items-center justify-center p-6" style={{ background: "var(--page-bg)" }}>
+        <div className="glass-card p-8 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: "rgba(239,68,68,0.1)" }}>
+            <AlertTriangle size={28} style={{ color: "#ef4444" }} />
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--text)" }}>
+            Account removed
+          </h2>
+          <p className="text-sm mb-6" style={{ color: "var(--text-50)" }}>
+            Your account has been removed by an administrator. Contact your manager if you believe this is a mistake.
           </p>
           <button onClick={handleSignOut} className="btn-ghost w-full">
             <LogOut size={14} /> Sign out

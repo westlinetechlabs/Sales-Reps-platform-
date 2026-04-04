@@ -43,7 +43,6 @@ export default function DashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
-  const [tabLoading, setTabLoading] = useState(false);
   const [search, setSearch] = useState("");
 
   const fetchData = useCallback(async () => {
@@ -81,9 +80,7 @@ export default function DashboardPage() {
   }, [fetchData]);
 
   function handleFilterChange(value: string) {
-    setTabLoading(true);
     setFilter(value);
-    setTimeout(() => setTabLoading(false), 300);
   }
 
   const filtered = bookings.filter((b) => {
@@ -212,17 +209,7 @@ export default function DashboardPage() {
 
       {/* Bookings list */}
       <AnimatePresence mode="wait">
-      {tabLoading ? (
-        <motion.div
-          key="skeleton"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="space-y-3"
-        >
-          {[1, 2, 3].map((i) => <BookingSkeleton key={i} />)}
-        </motion.div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <motion.div
           key={`empty-${filter}`}
           initial={{ opacity: 0, y: 10 }}

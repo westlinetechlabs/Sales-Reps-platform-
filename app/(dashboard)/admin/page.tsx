@@ -33,7 +33,6 @@ export default function AdminPage() {
   const [repFilter, setRepFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"bookings" | "commissions" | "team" | "withdrawals">("bookings");
-  const [tabLoading, setTabLoading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
 
@@ -56,7 +55,7 @@ export default function AdminPage() {
     setRep(profile);
 
     const [{ data: allReps }, { data: allBookings }, { data: allWithdrawals }] = await Promise.all([
-      supabase.from("sales_reps").select("*").order("full_name"),
+      supabase.from("sales_reps").select("*").eq("is_blocked", false).order("full_name"),
       supabase
         .from("sales_bookings")
         .select("*, sales_reps(id, full_name, email)")
@@ -75,9 +74,7 @@ export default function AdminPage() {
   }, []);
 
   function handleTabChange(t: typeof tab) {
-    setTabLoading(true);
     setTab(t);
-    setTimeout(() => setTabLoading(false), 300);
   }
 
   async function updateWithdrawal(id: string, status: WithdrawalStatus, adminNote?: string) {
@@ -175,9 +172,10 @@ export default function AdminPage() {
   }
 
   async function removeRep(repId: string, repName: string) {
-    if (!confirm(`Remove ${repName}? This will delete all their bookings too.`)) return;
+    if (!confirm(`Remove ${repName}? They will not be able to log in again.`)) return;
     const supabase = createClient();
-    const { error } = await supabase.from("sales_reps").delete().eq("id", repId);
+    // Soft-block instead of delete — prevents the auth account from auto-recreating a new profile on next login
+    const { error } = await supabase.from("sales_reps").update({ is_blocked: true, status: "inactive" }).eq("id", repId);
     if (error) {
       toast.error("Failed to remove rep");
     } else {
@@ -307,32 +305,8 @@ export default function AdminPage() {
 
       <AnimatePresence mode="wait">
 
-      {/* ── TAB LOADING SKELETON ── */}
-      {tabLoading && (
-        <motion.div
-          key="tab-skeleton"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          className="space-y-3"
-        >
-          {[1,2,3].map((i) => (
-            <div key={i} className="glass-card p-4">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl skeleton shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="skeleton h-4 w-40 rounded" />
-                  <div className="skeleton h-3 w-24 rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </motion.div>
-      )}
-
       {/* ── BOOKINGS TAB ── */}
-      {!tabLoading && tab === "bookings" && (
+      {tab === "bookings" && (
         <motion.div
           key="tab-bookings"
           initial={{ opacity: 0, y: 10 }}
@@ -478,7 +452,7 @@ export default function AdminPage() {
       )}
 
       {/* ── COMMISSIONS TAB ── */}
-      {!tabLoading && tab === "commissions" && (
+      {tab === "commissions" && (
         <motion.div
           key="tab-commissions"
           initial={{ opacity: 0, y: 10 }}
@@ -546,7 +520,7 @@ export default function AdminPage() {
       )}
 
       {/* ── WITHDRAWALS TAB ── */}
-      {!tabLoading && tab === "withdrawals" && (
+      {tab === "withdrawals" && (
         <motion.div
           key="tab-withdrawals"
           initial={{ opacity: 0, y: 10 }}
@@ -669,7 +643,7 @@ export default function AdminPage() {
       )}
 
       {/* ── TEAM TAB ── */}
-      {!tabLoading && tab === "team" && (
+      {tab === "team" && (
         <motion.div
           key="tab-team"
           initial={{ opacity: 0, y: 10 }}

@@ -7,12 +7,9 @@ export default function SplashScreen() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Only show once per browser session
-    if (sessionStorage.getItem("wl-splash-seen")) return;
-    sessionStorage.setItem("wl-splash-seen", "1");
+    // Show on every fresh page load (not just once per session)
     setVisible(true);
-
-    const t = setTimeout(() => setVisible(false), 2600);
+    const t = setTimeout(() => setVisible(false), 2400);
     return () => clearTimeout(t);
   }, []);
 
@@ -22,8 +19,8 @@ export default function SplashScreen() {
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           style={{
             position: "fixed",
             inset: 0,
@@ -36,113 +33,63 @@ export default function SplashScreen() {
             overflow: "hidden",
           }}
         >
-          {/* Ambient radial glow */}
+          {/* Logo */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-            style={{
-              position: "absolute",
-              width: 480,
-              height: 480,
-              borderRadius: "50%",
-              background: "radial-gradient(circle, rgba(245,168,0,0.12) 0%, transparent 70%)",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* Logo + ring */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-            style={{ position: "relative", marginBottom: 28 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{ marginBottom: 32 }}
           >
-            {/* Pulsing gold ring */}
-            <motion.div
-              animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0.15, 0.5] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              style={{
-                position: "absolute",
-                inset: -14,
-                borderRadius: "50%",
-                border: "1.5px solid rgba(245,168,0,0.5)",
-                pointerEvents: "none",
-              }}
-            />
-            {/* Outer static ring */}
-            <div
-              style={{
-                position: "absolute",
-                inset: -6,
-                borderRadius: "50%",
-                border: "1px solid rgba(245,168,0,0.18)",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Logo image */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://res.cloudinary.com/djayrwxns/image/upload/v1772931726/westline_favicon_wwht4g.png"
+              src="https://res.cloudinary.com/djayrwxns/image/upload/v1770785602/westline_logo_bmusvy.png"
               alt="Westline Techlabs"
-              width={80}
-              height={80}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                display: "block",
-                objectFit: "cover",
-              }}
+              style={{ height: 64, width: "auto", display: "block" }}
             />
           </motion.div>
 
           {/* Wordmark */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.55, ease: "easeOut" }}
+            transition={{ delay: 0.18, duration: 0.45, ease: "easeOut" }}
             style={{ textAlign: "center" }}
           >
             <p
               style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: 700,
-                letterSpacing: "0.04em",
+                letterSpacing: "0.05em",
                 color: "#e8e4dc",
-                marginBottom: 6,
+                marginBottom: 8,
               }}
             >
               WESTLINE TECHLABS
             </p>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.45, duration: 0.4 }}
+            <p
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
-                letterSpacing: "0.22em",
+                letterSpacing: "0.25em",
                 color: "#F5A800",
                 textTransform: "uppercase",
               }}
             >
               Sales Portal
-            </motion.p>
+            </p>
           </motion.div>
 
           {/* Tagline */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.65, duration: 0.4 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
             style={{
-              marginTop: 12,
-              fontSize: 12,
-              color: "rgba(232,228,220,0.28)",
-              letterSpacing: "0.06em",
+              marginTop: 14,
+              fontSize: 13,
+              color: "rgba(232,228,220,0.32)",
+              letterSpacing: "0.08em",
             }}
           >
             Design. Build. Deliver.
@@ -152,24 +99,24 @@ export default function SplashScreen() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
+            transition={{ delay: 0.3, duration: 0.2 }}
             style={{
               position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
               height: 2,
-              background: "rgba(255,255,255,0.04)",
+              background: "rgba(255,255,255,0.05)",
             }}
           >
             <motion.div
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
-              transition={{ delay: 0.5, duration: 1.8, ease: [0.4, 0, 0.6, 1] }}
+              transition={{ delay: 0.3, duration: 1.8, ease: "easeInOut" }}
               style={{
                 height: "100%",
-                background: "linear-gradient(90deg, rgba(245,168,0,0.6), #F5A800, rgba(245,168,0,0.6))",
-                boxShadow: "0 0 12px rgba(245,168,0,0.6)",
+                background: "#F5A800",
+                opacity: 0.7,
               }}
             />
           </motion.div>

@@ -440,22 +440,22 @@ export default function ReportsPage() {
               displayedSummaries.map((summary) => (
                 <div key={summary.rep.id} className="glass-card p-5">
                   {/* Rep header */}
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
                         style={{ background: "var(--gold-15)", color: "#F5A800" }}
                       >
                         {summary.rep.full_name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p
-                          className="font-semibold"
+                          className="font-semibold truncate"
                           style={{ color: "var(--text)", fontFamily: "'Space Grotesk', sans-serif" }}
                         >
                           {summary.rep.full_name}
                         </p>
-                        <p className="text-xs" style={{ color: "var(--text-35)" }}>
+                        <p className="text-xs truncate" style={{ color: "var(--text-35)" }}>
                           {summary.rep.email}
                           {summary.rep.region ? ` · ${summary.rep.region}` : ""}
                         </p>
