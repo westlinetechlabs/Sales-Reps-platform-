@@ -7,11 +7,13 @@ import {
   ArrowLeft, Copy, Download, Phone, Mail, MapPin,
   Loader2, CheckCircle2, MessageCircle, Send,
   Pencil, Trash2, RotateCcw, X, Check, AlertTriangle, Share2,
+  Receipt, FileText,
 } from "lucide-react";
 import { STATUS_CONFIG, SERVICE_TYPES } from "@/types";
 import type { Booking, BookingStatus } from "@/types";
 import toast from "react-hot-toast";
 import { jsPDF } from "jspdf";
+import ReceiptInvoiceModal from "@/components/ReceiptInvoiceModal";
 
 interface EditForm {
   client_name: string;
@@ -31,6 +33,9 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [viewerRole, setViewerRole] = useState<"rep" | "manager" | "owner">("rep");
+  const [repName, setRepName] = useState("");
+  const [repPhone, setRepPhone] = useState("");
+  const [docModal, setDocModal] = useState<"receipt" | "invoice" | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
@@ -47,11 +52,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       if (!session) return;
 
       const [{ data: profile }, { data, error }] = await Promise.all([
-        supabase.from("sales_reps").select("role").eq("user_id", session.user.id).maybeSingle(),
+        supabase.from("sales_reps").select("role, full_name, phone").eq("user_id", session.user.id).maybeSingle(),
         supabase.from("sales_bookings").select("*").eq("id", id).maybeSingle(),
       ]);
 
       if (profile?.role) setViewerRole(profile.role as "rep" | "manager" | "owner");
+      if (profile?.full_name) setRepName(profile.full_name);
+      if (profile?.phone)     setRepPhone(profile.phone);
 
       if (error || !data) {
         toast.error("Booking not found");
@@ -431,6 +438,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               <button onClick={sharePDF} className="btn-ghost text-xs">
                 <Share2 size={14} /> Share
               </button>
+              <button onClick={() => setDocModal("receipt")} className="btn-ghost text-xs">
+                <Receipt size={14} /> Receipt
+              </button>
+              <button onClick={() => setDocModal("invoice")} className="btn-ghost text-xs">
+                <FileText size={14} /> Invoice
+              </button>
               <button onClick={enterEditMode} className="btn-gold text-xs">
                 <Pencil size={14} /> Edit
               </button>
@@ -736,6 +749,16 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </div>
+
+      {docModal && (
+        <ReceiptInvoiceModal
+          booking={booking}
+          type={docModal}
+          repName={repName}
+          repPhone={repPhone}
+          onClose={() => setDocModal(null)}
+        />
+      )}
     </div>
   );
 }
