@@ -83,12 +83,12 @@ function generatePDF(form: DocForm, logoB64: string | null, markB64: string | nu
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
 
-  const GOLD    = [245, 168, 0] as [number, number, number];
-  const BG      = dark ? [10, 7, 0]     : [255, 255, 255];
-  const TEXT    = dark ? [232, 228, 220] : [28, 26, 18];
-  const MUTED   = dark ? [160, 148, 120] : [110, 102, 80];
-  const SURFACE = dark ? [24, 20, 4]     : [248, 244, 236];
-  const BORDER  = dark ? [50, 44, 20]    : [220, 212, 190];
+  const GOLD    = [245, 168, 0]     as [number, number, number];
+  const BG      = (dark ? [10, 7, 0]       : [255, 255, 255]) as [number, number, number];
+  const TEXT    = (dark ? [232, 228, 220]   : [28, 26, 18])   as [number, number, number];
+  const MUTED   = (dark ? [160, 148, 120]   : [110, 102, 80]) as [number, number, number];
+  const SURFACE = (dark ? [24, 20, 4]       : [248, 244, 236]) as [number, number, number];
+  const BORDER  = (dark ? [50, 44, 20]      : [220, 212, 190]) as [number, number, number];
 
   // ── Fill background ────────────────────────────────────────────────────
   doc.setFillColor(...BG);
