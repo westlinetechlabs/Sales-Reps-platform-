@@ -426,38 +426,44 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </span>
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap shrink-0">
+        <div className="flex flex-col gap-1.5 shrink-0">
           {!editMode ? (
             <>
-              <button onClick={copyDetails} className="btn-ghost text-xs">
-                <Copy size={14} /> Copy
-              </button>
-              <button onClick={downloadPDF} className="btn-ghost text-xs">
-                <Download size={14} /> PDF
-              </button>
-              <button onClick={sharePDF} className="btn-ghost text-xs">
-                <Share2 size={14} /> Share
-              </button>
-              <button onClick={() => setDocModal("receipt")} className="btn-ghost text-xs">
-                <Receipt size={14} /> Receipt
-              </button>
-              <button onClick={() => setDocModal("invoice")} className="btn-ghost text-xs">
-                <FileText size={14} /> Invoice
-              </button>
-              <button onClick={enterEditMode} className="btn-gold text-xs">
-                <Pencil size={14} /> Edit
-              </button>
+              {/* Row 1: Copy, PDF, Share */}
+              <div className="flex gap-1.5">
+                <button onClick={copyDetails} className="btn-ghost text-xs flex-1">
+                  <Copy size={13} /> Copy
+                </button>
+                <button onClick={downloadPDF} className="btn-ghost text-xs flex-1">
+                  <Download size={13} /> PDF
+                </button>
+                <button onClick={sharePDF} className="btn-ghost text-xs flex-1">
+                  <Share2 size={13} /> Share
+                </button>
+              </div>
+              {/* Row 2: Receipt, Invoice, Edit */}
+              <div className="flex gap-1.5">
+                <button onClick={() => setDocModal("receipt")} className="btn-ghost text-xs flex-1">
+                  <Receipt size={13} /> Receipt
+                </button>
+                <button onClick={() => setDocModal("invoice")} className="btn-ghost text-xs flex-1">
+                  <FileText size={13} /> Invoice
+                </button>
+                <button onClick={enterEditMode} className="btn-gold text-xs flex-1">
+                  <Pencil size={13} /> Edit
+                </button>
+              </div>
             </>
           ) : (
-            <>
-              <button onClick={() => setEditMode(false)} className="btn-ghost text-xs">
+            <div className="flex gap-1.5">
+              <button onClick={() => setEditMode(false)} className="btn-ghost text-xs flex-1">
                 <X size={14} /> Cancel
               </button>
-              <button onClick={saveEdits} disabled={saving} className="btn-gold text-xs">
+              <button onClick={saveEdits} disabled={saving} className="btn-gold text-xs flex-1">
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 Save Changes
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>

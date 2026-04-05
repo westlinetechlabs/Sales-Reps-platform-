@@ -74,11 +74,37 @@ function toBase64(url: string): Promise<string> {
     );
 }
 
+// Resize + re-encode as JPEG to drastically cut PDF file size
+function resizeToJpeg(dataUrl: string, maxPx: number, quality = 0.65): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxPx / img.naturalWidth, maxPx / img.naturalHeight, 1);
+      const w = Math.round(img.naturalWidth * ratio);
+      const h = Math.round(img.naturalHeight * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(dataUrl); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 // ─── PDF generator ──────────────────────────────────────────────────────────
 
-function generatePDF(form: DocForm, logoB64: string | null, markB64: string | null): Blob {
+function generatePDF(
+  form: DocForm,
+  logoB64: string | null,
+  logoDims: { w: number; h: number } | null,
+  markB64: string | null,
+): Blob {
   const dark = form.pdfTheme === "dark";
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
 
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
@@ -94,88 +120,87 @@ function generatePDF(form: DocForm, logoB64: string | null, markB64: string | nu
   doc.setFillColor(...BG);
   doc.rect(0, 0, pageW, pageH, "F");
 
-  // ── Diagonal watermark (favicon) ──────────────────────────────────────
+  // ── Diagonal watermark (nav logo, very low opacity) ──────────────────
   if (markB64) {
     try {
       doc.saveGraphicsState();
-      // @ts-expect-error – jsPDF GState is accessible via doc.GState
-      const gs = new doc.GState({ opacity: dark ? 0.055 : 0.04, "fill-opacity": dark ? 0.055 : 0.04 });
+      // @ts-expect-error – jsPDF GState
+      const gs = new doc.GState({ opacity: dark ? 0.045 : 0.03, "fill-opacity": dark ? 0.045 : 0.03 });
       doc.setGState(gs);
-      // Rotate around page center
-      const cx = pageW / 2;
-      const cy = pageH / 2;
-      const sz = 130;
-      // Apply 45° rotation via internal transform
-      const rad = (-45 * Math.PI) / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      // jsPDF supports transform via internal matrix – use addImage with rotation via canvas workaround:
-      // Instead, place three watermarks diagonally tiled for coverage
-      const positions = [
-        [cx - sz / 2, cy - sz / 2],
-        [cx - sz / 2 - 60, cy - sz / 2 - 70],
-        [cx - sz / 2 + 60, cy - sz / 2 + 70],
-      ];
-      for (const [x, y] of positions) {
-        doc.addImage(markB64, "PNG", x, y, sz, sz);
-      }
+      // Single centered watermark — keep logo proportions
+      const WM_H = 55;
+      const WM_W = logoDims && logoDims.h > 0
+        ? Math.round(WM_H * (logoDims.w / logoDims.h))
+        : 110;
+      const wmX = pageW / 2 - WM_W / 2;
+      const wmY = pageH / 2 - WM_H / 2;
+      doc.addImage(markB64, "JPEG", wmX, wmY, WM_W, WM_H);
       doc.restoreGraphicsState();
-      // Suppress unused variable warnings
-      void cos; void sin;
     } catch {
-      // Watermark failure is non-fatal
+      // non-fatal
     }
   }
 
   // ── Header bar ────────────────────────────────────────────────────────
-  const HEADER_H = 48;
-  doc.setFillColor(...(dark ? [16, 12, 2] as [number, number, number] : [20, 16, 4] as [number, number, number]));
+  const HEADER_H = 52;
+  const headerBg = dark
+    ? [16, 12, 2] as [number, number, number]
+    : [255, 255, 255] as [number, number, number];
+  doc.setFillColor(...headerBg);
   doc.rect(0, 0, pageW, HEADER_H, "F");
 
   // Gold accent strip at bottom of header
   doc.setFillColor(...GOLD);
   doc.rect(0, HEADER_H - 1.5, pageW, 1.5, "F");
+  // Light theme: also a subtle top border
+  if (!dark) {
+    doc.setDrawColor(220, 212, 190);
+    doc.setLineWidth(0.3);
+    doc.line(0, 0, pageW, 0);
+  }
 
-  // Logo image in header
-  const LOGO_H = 16;
-  const LOGO_W = 48;
+  // Logo image in header — preserve natural aspect ratio
+  const LOGO_H = 22;
+  const LOGO_W = logoDims && logoDims.h > 0
+    ? Math.round(LOGO_H * (logoDims.w / logoDims.h))
+    : 66; // fallback ~3:1 wide logo
   const LOGO_X = 14;
-  const LOGO_Y = (HEADER_H - LOGO_H) / 2 - 2;
+  const LOGO_Y = (HEADER_H - LOGO_H) / 2 - 3;
   if (logoB64) {
     try {
-      doc.addImage(logoB64, "PNG", LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
+      doc.addImage(logoB64, "JPEG", LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
     } catch {
-      // Fallback: text logo
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
+      doc.setFontSize(14);
       doc.setTextColor(...GOLD);
-      doc.text("WESTLINE", LOGO_X, LOGO_Y + 10);
+      doc.text("WESTLINE TECHLABS", LOGO_X, LOGO_Y + 12);
     }
   } else {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(14);
     doc.setTextColor(...GOLD);
-    doc.text("WESTLINE TECHLABS", LOGO_X, LOGO_Y + 10);
+    doc.text("WESTLINE TECHLABS", LOGO_X, LOGO_Y + 12);
   }
 
-  // Tagline below logo
+  // Tagline — aligned left below logo, larger font
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
-  doc.text("Design. Build. Deliver.", LOGO_X, LOGO_Y + LOGO_H + 3);
+  doc.text("Design. Build. Deliver.", LOGO_X, LOGO_Y + LOGO_H + 4);
 
   // Doc type label (right side of header)
   const docLabel = form.docType === "receipt" ? "RECEIPT" : "INVOICE";
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.setTextColor(...GOLD);
+  // Dark theme: gold label; Light theme: dark label
+  doc.setTextColor(...(dark ? GOLD : [28, 26, 18] as [number, number, number]));
   doc.text(docLabel, pageW - 14, 22, { align: "right" });
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...MUTED);
   doc.text(`#${form.docNumber}`, pageW - 14, 32, { align: "right" });
-  doc.text(`Issued: ${fmtDate(form.issueDate)}`, pageW - 14, 38, { align: "right" });
+  doc.text(`Issued: ${fmtDate(form.issueDate)}`, pageW - 14, 40, { align: "right" });
 
   // ── Section helpers ───────────────────────────────────────────────────
   let y = HEADER_H + 14;
@@ -337,7 +362,7 @@ function generatePDF(form: DocForm, logoB64: string | null, markB64: string | nu
   doc.setFontSize(8.5);
   doc.setTextColor(...TEXT);
   doc.text(descLines, TABLE_L + 3, y + 4);
-  doc.text(`GH\u20B5${amount.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`, COL_AMT_X + 3, y + 4);
+  doc.text(`GHS ${amount.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`, COL_AMT_X + 3, y + 4);
   y += serviceRowH + 1;
 
   // VAT row
@@ -354,7 +379,7 @@ function generatePDF(form: DocForm, logoB64: string | null, markB64: string | nu
     doc.setTextColor(...MUTED);
     doc.text(`VAT (${vatPct}%)`, TABLE_L + 3, y + 4);
     doc.setTextColor(...TEXT);
-    doc.text(`GH\u20B5${vatAmt.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`, COL_AMT_X + 3, y + 4);
+    doc.text(`GHS ${vatAmt.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`, COL_AMT_X + 3, y + 4);
     y += ROW_H + 1;
   }
 
@@ -367,7 +392,7 @@ function generatePDF(form: DocForm, logoB64: string | null, markB64: string | nu
   doc.setTextColor(10, 7, 0);
   doc.text("TOTAL", TABLE_L + 3, y + 5);
   doc.text(
-    `GH\u20B5${total.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`,
+    `GHS ${total.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`,
     COL_AMT_X + 3,
     y + 5
   );
@@ -463,26 +488,38 @@ export default function ReceiptInvoiceModal({ booking, type, repName, repPhone =
   }));
 
   const [logoB64,  setLogoB64]  = useState<string | null>(null);
+  const [logoDims, setLogoDims] = useState<{ w: number; h: number } | null>(null);
   const [markB64,  setMarkB64]  = useState<string | null>(null);
   const [imgReady, setImgReady] = useState(false);
   const [genBusy,  setGenBusy]  = useState(false);
 
-  // Pre-load images when modal mounts
+  // Pre-load + resize images when modal mounts
   useEffect(() => {
     let cancelled = false;
+    const LOGO_URL = "https://res.cloudinary.com/djayrwxns/image/upload/v1770785602/westline_logo_bmusvy.png";
     (async () => {
       try {
+        const raw = await toBase64(LOGO_URL);
+        // Measure natural dimensions for correct aspect ratio in PDF
+        const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          img.onerror = () => resolve({ w: 400, h: 133 }); // safe fallback ~3:1
+          img.src = raw;
+        });
+        // Resize logo and watermark from the same source image
         const [logo, mark] = await Promise.all([
-          toBase64("https://res.cloudinary.com/djayrwxns/image/upload/v1770785602/westline_logo_bmusvy.png"),
-          toBase64("https://res.cloudinary.com/djayrwxns/image/upload/v1772931726/westline_favicon_wwht4g.png"),
+          resizeToJpeg(raw, 400, 0.8),
+          resizeToJpeg(raw, 300, 0.5),
         ]);
         if (!cancelled) {
           setLogoB64(logo);
+          setLogoDims(dims);
           setMarkB64(mark);
           setImgReady(true);
         }
       } catch {
-        // Images failed to load — we'll generate PDF without them
+        // Images failed to load — generate PDF without them
         if (!cancelled) setImgReady(true);
       }
     })();
@@ -512,7 +549,7 @@ export default function ReceiptInvoiceModal({ booking, type, repName, repPhone =
   async function handleGenerate(mode: "download" | "share") {
     setGenBusy(true);
     try {
-      const blob = generatePDF(form, logoB64, markB64);
+      const blob = generatePDF(form, logoB64, logoDims, markB64);
       const safeName = form.clientName.replace(/\s+/g, "-").toLowerCase();
       const prefix   = form.docType === "receipt" ? "receipt" : "invoice";
       const fileName = `${prefix}-${safeName}-${form.docNumber}.pdf`;
@@ -608,7 +645,7 @@ export default function ReceiptInvoiceModal({ booking, type, repName, repPhone =
           exit={{ opacity: 0, y: 16, scale: 0.97 }}
           transition={{ type: "spring", stiffness: 340, damping: 28 }}
           className="glass-card w-full max-w-lg max-h-[92dvh] flex flex-col overflow-hidden"
-          style={{ background: "var(--card-form-bg)", border: "1px solid var(--border-10)" }}
+          style={{ background: "var(--card-form-bg)", border: "1px solid var(--border-10)", overflowX: "hidden" }}
         >
           {/* ── Modal Header ───────────────────────────────────────────── */}
           <div
@@ -873,7 +910,7 @@ export default function ReceiptInvoiceModal({ booking, type, repName, repPhone =
             <button
               onClick={() => handleGenerate("download")}
               disabled={genBusy || !imgReady}
-              className="btn-gold flex-1 text-sm"
+              className="btn-gold flex-1 text-sm whitespace-nowrap"
             >
               {genBusy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               {imgReady ? "Download PDF" : "Loading…"}
